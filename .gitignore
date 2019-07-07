@@ -1,0 +1,7 @@
+__pycache__/
+data/data.yml
+data/label.yml
+data/num_examples.yml
+data/preview/*
+data/tf_data/*
+model_fcvaegan/*
