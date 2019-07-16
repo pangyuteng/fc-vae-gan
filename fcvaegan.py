@@ -23,7 +23,7 @@ from tensorflow.python.ops import array_ops
 
 INPUT_TENSOR_NAME = 'inputs'
 SIGNATURE_NAME = 'predictions'
-MODEL_DIR = 'model_fccvaegan'
+MODEL_DIR = 'model_fcvaegan'
 
 from tensorflow.contrib import slim
 conv2d = tf.contrib.layers.convolution2d
@@ -504,9 +504,6 @@ def main(training,warm_start,batch_size,debug):
     }
     epochs = 80000
     
-    name = 'model_fccvaegan'
-    MODEL_DIR = '{}_stride{}'.format(name,params['stride'][2])
-
     def train_input_fn(training_dir=TRAIN_DIR, batch_size=batch_size, params=None):
         return _input_fn(training_dir, 'train.tfrecords', batch_size=batch_size)
 

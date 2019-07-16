@@ -110,7 +110,7 @@ class Pascal(object):
         label_list = [x.split('.')[0] for x in os.listdir(self.label_folder_path)]
         
         intersection_list = sorted(list(set(img_list).intersection(set(label_list))))
-        intersection_list = intersection_list[:1000]
+        #intersection_list = intersection_list[:1000]
         c=0
         for n,basename in enumerate(intersection_list):
             img_basename = basename+'.jpg'
