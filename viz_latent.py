@@ -5,6 +5,7 @@ from fcvaegan import (
     INPUT_TENSOR_NAME,
     SIGNATURE_NAME,
 )
+from tsne import Parametric_tSNE
 
 import numpy as np
 import tensorflow as tf
@@ -17,7 +18,7 @@ TRAIN_DIR = data_module.TF_DATA_DIR
 W,H,C,CY=(data_module.w,data_module.h,data_module.c,data_module.cy)
 num_samples = data_module.NUM_EXAMPLES_TRAIN
 
-training = False
+training = True # this impact inferences....due to batch norm...?
 epochs = 80000
 batch_size = 4
 params = {
@@ -55,11 +56,17 @@ def _input_fn(training_dir, training_filename, batch_size=batch_size):
 
 sess = tf.InteractiveSession()
 sess.run(tf.global_variables_initializer())
+
+tf_images,tf_labels = train_input_fn(batch_size=batch_size)
+batch_size = 4
+#tf_images,tf_labels = train_input_fn(batch_size=batch_size)
+tf_images,tf_labels = eval_input_fn(batch_size=batch_size)
+
+coord = tf.train.Coordinator()
+threads = tf.train.start_queue_runners(coord=coord,sess=sess)
+
 vae = None
 if training:
-    tf_images,tf_labels = train_input_fn(batch_size=batch_size)
-    coord = tf.train.Coordinator()
-    threads = tf.train.start_queue_runners(coord=coord,sess=sess)
 
     tsne_high_dims = params['latent_dims'][-1]
     tsne_num_outputs = 2
@@ -76,7 +83,7 @@ if training:
     zlist=[]
     llist=[]
     #for r in range(steps_per_epoch):
-    for r in range(3):
+    for r in range(30):
         img, lbl = sess.run([tf_images, tf_labels])
         x = img[INPUT_TENSOR_NAME]
         z = vae.transformer(x)
@@ -99,10 +106,6 @@ if training:
     tsne.save_model(tsne_weight_file)
     print('done training tsne...')
 
-    coord.request_stop()
-    # Wait for threads to stop
-    coord.join(threads)
-
 
 x = tf.placeholder(name='x', dtype=tf.float32, shape=[None, W,H,C])
 if vae is None:
@@ -110,9 +113,6 @@ if vae is None:
     vae._build(x)
     vae.restore(tf.train.latest_checkpoint(MODEL_DIR))
 
-batch_size = 4
-#tf_images,tf_labels = train_input_fn(batch_size=batch_size)
-tf_images,tf_labels = eval_input_fn(batch_size=batch_size)
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -124,8 +124,8 @@ h = H
 w = W
 I_reconstructed = np.empty((h*n, 2*w*n, 3))
 
-coord = tf.train.Coordinator()
-threads = tf.train.start_queue_runners(coord=coord,sess=sess)
+#coord = tf.train.Coordinator()
+#threads = tf.train.start_queue_runners(coord=coord,sess=sess)
 
 img, lbl = sess.run([tf_images, tf_labels])
 x = img[INPUT_TENSOR_NAME]
@@ -146,7 +146,7 @@ plt.grid(False)
 plt.savefig('result_compare.png')
 print('done.')
 
-'''
+
 
 if vae.l_dim > 2:
     n = 10
@@ -254,4 +254,3 @@ coord.join(threads)
 if training_success:
     print("training done.")
 
-'''
