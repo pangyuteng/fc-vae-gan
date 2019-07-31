@@ -477,32 +477,42 @@ def model_fn(features, labels, mode, params):
         return tf.estimator.EstimatorSpec(
             mode, loss=loss, eval_metric_ops=eval_metric_ops)
 
+import data    
+data_module = data.pascal
+
+read_and_decode = data_module.read_and_decode
+TRAIN_DIR = data_module.TF_DATA_DIR
+W,H,C,CY=(data_module.w,data_module.h,data_module.c,data_module.cy)
+NUM_EXAMPLES_TRAIN,NUM_EXAMPLES_VALIDATION,NUM_EXAMPLES_TEST = (
+    data_module.NUM_EXAMPLES_TRAIN,
+    data_module.NUM_EXAMPLES_VALIDATION,
+    data_module.NUM_EXAMPLES_TEST,
+)
+
+
+PARAMS = {
+    'learning_rate': 1e-6,
+    'latent_dims':[10,10,10],
+    'data_dims': [W,H,C],
+    'is_training':True,
+    'batch_size':4,
+    'warmup_until':1000000,
+    'g_scale_factor':0.2,
+    'd_scale_factor':0.2,
+    'recon_const':0.0,
+    'latent_factor':0.5,
+    'perceptual_factor':0.25,
+    'stride':[2,2,2],
+}
+epochs = 80000
+
 # using main, so tf_debug can be used.
 def main(training,warm_start,batch_size,debug):
-
-    import data    
-    data_module = data.pascal
-    
-    read_and_decode = data_module.read_and_decode
-    TRAIN_DIR = data_module.TF_DATA_DIR
-    W,H,C,CY=(data_module.w,data_module.h,data_module.c,data_module.cy)
-    num_samples = data_module.NUM_EXAMPLES_TRAIN
-    
-    params = {
-        'learning_rate': 1e-6,
-        'latent_dims':[10,10,10],
-        'data_dims': [W,H,C],
-        'is_training':training,
+    params = dict(PARAMS)
+    params.update({
+        'training':training,
         'batch_size':batch_size,
-        'warmup_until':1000000,
-        'g_scale_factor':0.2,
-        'd_scale_factor':0.2,
-        'recon_const':0.0,
-        'latent_factor':0.5,
-        'perceptual_factor':0.25,
-        'stride':[2,2,2],
-    }
-    epochs = 80000
+    })
     
     def train_input_fn(training_dir=TRAIN_DIR, batch_size=batch_size, params=None):
         return _input_fn(training_dir, 'train.tfrecords', batch_size=batch_size)

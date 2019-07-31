@@ -1,256 +1,225 @@
+import matplotlib as mpl
+mpl.use('Agg')
+import matplotlib.pyplot as plt
+
 import os, sys
+import numpy as np
+import tensorflow as tf
+from tsne import Parametric_tSNE
+
+# configure Tensorflow
+session_conf = tf.ConfigProto(intra_op_parallelism_threads=1, inter_op_parallelism_threads=1)
+session_conf.gpu_options.allow_growth=True
+
+# intialize TF
+tf.reset_default_graph()
+sess = tf.Session(graph=tf.get_default_graph(), config=session_conf)
+init = tf.global_variables_initializer()
+sess.run(init)
+
+# import stuff.
 from fcvaegan import (
     Model,
     MODEL_DIR,
     INPUT_TENSOR_NAME,
     SIGNATURE_NAME,
+    read_and_decode,
+    PARAMS,
+    W,H,C,CY,
+    TRAIN_DIR,
+    NUM_EXAMPLES_TRAIN,
+    NUM_EXAMPLES_VALIDATION,
+    NUM_EXAMPLES_TEST,
 )
-from tsne import Parametric_tSNE
+params = dict(PARAMS)
+params.update({
+    'is_training':True, # this impact inferences....due to batch norm...?
+    #'batch_size':4, # <<--- 4 is good for 6gb gpu.
+    'batch_size':1,
+})
 
-import numpy as np
-import tensorflow as tf
-
-import data    
-data_module = data.pascal
-
-read_and_decode = data_module.read_and_decode
-TRAIN_DIR = data_module.TF_DATA_DIR
-W,H,C,CY=(data_module.w,data_module.h,data_module.c,data_module.cy)
-num_samples = data_module.NUM_EXAMPLES_TRAIN
-
-training = True # this impact inferences....due to batch norm...?
-epochs = 80000
-batch_size = 4
-params = {
-    'learning_rate': 1e-6,
-    'latent_dims':[10,10,10],
-    'data_dims': [W,H,C],
-    'is_training':False,
-    'batch_size':batch_size,
-    'warmup_until':1000000,
-    'g_scale_factor':0.2,
-    'd_scale_factor':0.2,
-    'recon_const':0.0,
-    'latent_factor':0.5,
-    'perceptual_factor':0.25,
-    'stride':[2,2,2],
-}
-
-
-def train_input_fn(training_dir=TRAIN_DIR, batch_size=batch_size, params=None):
-    return _input_fn(training_dir, 'train.tfrecords', batch_size=batch_size)
-
-def eval_input_fn(training_dir=TRAIN_DIR, batch_size=batch_size, params=None):
-    return _input_fn(training_dir, 'validation.tfrecords', batch_size=batch_size)
+batch_size = params['batch_size']
 
 def _input_fn(training_dir, training_filename, batch_size=batch_size):
     test_file = os.path.join(training_dir, training_filename)
     filename_queue = tf.train.string_input_producer([test_file])
 
     image, label = read_and_decode(filename_queue)
-
     images, labels = tf.train.batch(
         [image, label], batch_size=batch_size,
         capacity=1000 + 10 * batch_size)
     return {INPUT_TENSOR_NAME: images}, labels
 
-sess = tf.InteractiveSession()
-sess.run(tf.global_variables_initializer())
 
+#def eval_input_fn(training_dir=TRAIN_DIR, batch_size=batch_size, params=None):
+#    return _input_fn(training_dir, 'validation.tfrecords', batch_size=batch_size)
+#tf_images,tf_labels = eval_input_fn(batch_size=batch_size)
+
+def train_input_fn(training_dir=TRAIN_DIR, batch_size=batch_size, params=None):
+    return _input_fn(training_dir, 'train.tfrecords', batch_size=batch_size)
 tf_images,tf_labels = train_input_fn(batch_size=batch_size)
-batch_size = 4
-#tf_images,tf_labels = train_input_fn(batch_size=batch_size)
-tf_images,tf_labels = eval_input_fn(batch_size=batch_size)
 
 coord = tf.train.Coordinator()
-threads = tf.train.start_queue_runners(coord=coord,sess=sess)
+threads = tf.train.start_queue_runners(coord=coord,sess=sess)    
 
-vae = None
-if training:
+# test out the input data stream.
+img, lbl = sess.run([tf_images,tf_labels])
+batch = [img[INPUT_TENSOR_NAME],lbl]
+print(batch[0].shape,batch[1].shape)
+print(batch[1][0].shape)
 
-    tsne_high_dims = params['latent_dims'][-1]
-    tsne_num_outputs = 2
-    tsne_perplexity = 5
-    tsne_dropout = 0.3
-    tsne_weight_file = os.path.join(MODEL_DIR,'tsne.hdf5')
+# load model
+X = tf.placeholder(name='x', dtype=tf.float32, shape=[None, W,H,C])
+model = Model(**params)
+model._build(X)
+model.restore(tf.train.latest_checkpoint(MODEL_DIR))
 
-    x = tf.placeholder(name='x', dtype=tf.float32, shape=[None, W,H,C])
-    vae = Model(**params)
-    vae._build(x)
-    vae.restore(tf.train.latest_checkpoint(MODEL_DIR))
-
-    # TODO: might need to save to disk as ...hdf5
-    zlist=[]
-    llist=[]
-    #for r in range(steps_per_epoch):
-    for r in range(30):
-        img, lbl = sess.run([tf_images, tf_labels])
-        x = img[INPUT_TENSOR_NAME]
-        z = vae.transformer(x)
-        zshape = np.array(z.shape)
-        newshape = [np.prod(zshape[:-1]),params['latent_dims'][-1]]
-        z = np.reshape(z,newshape)
-        zlist.append(z)
-        llist.append(lbl)
-
-    zlist=np.array(zlist)
-    llist=np.array(llist)
-    z = np.concatenate(zlist,axis=0)
-    l = np.concatenate(llist,axis=0)
-
-    print(z.shape,l.shape,'^^^^^^^^^^^^^^^^^')
-
-    print('training tsne...')
-    tsne = Parametric_tSNE(tsne_high_dims, tsne_num_outputs, tsne_perplexity, dropout=tsne_dropout)
-    tsne.fit(z,verbose=1,epochs=5,)
-    tsne.save_model(tsne_weight_file)
-    print('done training tsne...')
-
-
-x = tf.placeholder(name='x', dtype=tf.float32, shape=[None, W,H,C])
-if vae is None:
-    vae = Model(**params)
-    vae._build(x)
-    vae.restore(tf.train.latest_checkpoint(MODEL_DIR))
-
-
-import matplotlib.pyplot as plt
-import numpy as np
-import tensorflow as tf
-from skimage import exposure
-
+# initialize array for saving images.
 n = np.sqrt(batch_size).astype(np.int32)
 h = H
 w = W
-I_reconstructed = np.empty((h*n, 2*w*n, 3))
+I_hat = np.empty((h*n, 2*w*n,3))
+I_z = np.empty((h*n, 2*w*n,3))
 
-#coord = tf.train.Coordinator()
-#threads = tf.train.start_queue_runners(coord=coord,sess=sess)
-
+# inference
 img, lbl = sess.run([tf_images, tf_labels])
 x = img[INPUT_TENSOR_NAME]
-x_tilde = vae.reconstructor(x)
+x_hat,z,x_p = model.sess.run([model.x_hat,model.z,model.x_p], feed_dict={model.x: x,})
+
+
+# print stuff...
+print(x.shape,np.max(x),np.min(x))
+print(x_hat.shape,np.max(x_hat),np.min(x_hat))
+print(x_p.shape,np.max(x_p),np.min(x_p))
+print(z.shape,x_p.shape)
+
+
+
+
+print(n)
+for i in range(n):
+    for j in range(n):
+        tmp = np.concatenate(
+            (x_hat[i*n+j, :].reshape(h, w,3), 
+             x[i*n+j, :].reshape(h, w,3)),
+            axis=1
+        )
+        I_hat[i*h:(i+1)*h, j*2*w:(j+1)*2*w,:] = tmp
+szx,szy = 60,30
+plt.figure(0,figsize=(szx,szy))
+plt.imshow(I_hat, cmap='gray')
+plt.grid(False)
+plt.savefig('result_compare_hat.png')
 
 for i in range(n):
     for j in range(n):
         tmp = np.concatenate(
-            (x_tilde[i*n+j, :].reshape(h, w, C), 
-             x[i*n+j, :].reshape(h, w, C)),
+            (x_p[i*n+j, :].reshape(h, w,3), 
+             x[i*n+j, :].reshape(h, w,3)),
             axis=1
         )
-        I_reconstructed[i*h:(i+1)*h, j*2*w:(j+1)*2*w, :] = tmp
+        I_z[i*h:(i+1)*h, j*2*w:(j+1)*2*w,:] = tmp
 
-plt.figure(figsize=(20, 20))
-plt.imshow(I_reconstructed, cmap='gray')
+plt.figure(1,figsize=(szx,szy))
+plt.imshow(I_z, cmap='gray')
 plt.grid(False)
-plt.savefig('result_compare.png')
+plt.savefig('result_compare_z.png')
+
 print('done.')
 
+import yaml
+with open('/media/external/scisoft/fc-vae-gan/data/label.yml','r') as f:
+    label_dict = yaml.load(f.read())
+num_of_interest = []
+for k,v in label_dict.items():
+    if v in ['sky','bicycle','aeroplane']:
+        num_of_interest.append(k)
+num_of_interest = set(num_of_interest)
 
 
-if vae.l_dim > 2:
-    n = 10
-    x = np.linspace(-2, 2, n)
-    for latent_dim in range(params['n_z']):
-        I_latent = np.empty((h*n, w))
-        for i, xi in enumerate(x):
-            sd = 1.
-            r = np.random.normal(0.,sd,(params['n_z'],))
-            r[latent_dim]=xi
-            z = np.array([r])
-            z1 = np.random.normal(0.,sd,(1,int(w/2),int(h/2),params['n_z_1']))
-            z2 = np.random.normal(0.,sd,(1,int(w/4),int(h/4),params['n_z_2']))
-            z3 = np.random.normal(0.,sd,(1,int(w/8),int(w/8),params['n_z_3']))
-            #x_hat = vae.generator(z,z1,z2,z3)
-            x_hat = vae.generator_only_z(z)
+print("OK")
 
-            I_latent[i*w:(i+1)*w,:] = x_hat[0].reshape(w, h)
+import h5py
+path = '/media/external/scisoft/fc-vae-gan/data/latent.h5'
+os.remove(path)
 
-        plt.figure(figsize=(8, 8))        
-        plt.imshow(I_latent, cmap="gray")
-        plt.grid(None)
-        plt.savefig('result_latent_generate{}.png'.format(latent_dim))
-else:
+img_count = 0
+with h5py.File(path, "a") as f:
+    for ind in range(NUM_EXAMPLES_TRAIN,):
+        print('index',ind)
+        
+        img, lbl = sess.run([tf_images, tf_labels])
+        x = img[INPUT_TENSOR_NAME]
+        
+        intersect = num_of_interest.intersection(set(list(lbl.ravel())))
+        if len(list(intersect))==0:
+            print('skipped')
+            continue
+        
+        print('processing')
+        x_hat,z,x_p = model.sess.run([model.x_hat,model.z,model.x_p], feed_dict={model.x: x,})
+        zshape = np.array(z.shape)
 
-    n = 20
-    x = np.linspace(-2, 2, n)
-    y = np.linspace(-2, 2, n)
+        skip = int(W/zshape[1])
+        lbl = lbl[:,::skip,::skip,:]
+        lshape = np.array(lbl.shape)
+        latent_dim = params['latent_dims'][-1]
+        newshape = [np.prod(zshape[:-1]),latent_dim]
+        z = np.reshape(z,newshape)
+        label_dim = 1
+        newshape = [np.prod(lshape[:-1]),label_dim]
+        lbl = np.reshape(lbl,newshape)
+        
+        if img_count == 0:
+            zset = f.create_dataset('latent',
+                (newshape[0],latent_dim), maxshape=(None,latent_dim),dtype=np.int, chunks=(10**4,latent_dim))
+            lset = f.create_dataset('label',
+                (newshape[0],label_dim,), maxshape=(None,label_dim),dtype=np.float, chunks=(10**4,label_dim))
+            zset[:] = z
+            lset = lbl
+        else:
+            zset = f['latent']
+            lset = f['label']
+            
+            zset.resize((zset.shape[0]+newshape[0],zset.shape[1]), axis=0)
+            lset.resize((lset.shape[0]+newshape[0],lset.shape[1]), axis=0)
+            
+            zset[-newshape[0]:,:]=z
+            lset[-newshape[0]:,:]=lbl
+        
+        img_count+=1
 
-    I_latent = np.empty((h*n, w*n))
-    for i, yi in enumerate(x):
-        for j, xi in enumerate(y):
-            z = np.array([[xi, yi]])
-            x_hat = vae.generator(z)
-
-            I_latent[(n-i-1)*W:(n-i)*W, j*H:(j+1)*H] = x_hat[0].reshape(w, h)
-
-    plt.figure(figsize=(8, 8))        
-    plt.imshow(I_latent, cmap="gray")
-    plt.grid(None)
-    plt.savefig('result_latent_generate.png')
-
-# Test the trained model: transformation
-
-zlist=[]
-llist=[]
-for r in range(50):
-    img, lbl = sess.run([tf_images, tf_labels])
-    x = img[INPUT_TENSOR_NAME]
-    zlist.append(vae.transformer(x))
-    llist.append(lbl)
-
-zlist=np.array(zlist)
-llist=np.array(llist)
-z = np.concatenate(zlist,axis=0)
-l = np.concatenate(llist,axis=0)
-
-
-# save embedding
-from tensorflow.contrib.tensorboard.plugins import projector
-
-tf.reset_default_graph()
-sess = tf.Session()
-config = projector.ProjectorConfig()
-
-LOG_DIR = 'emb'
-summary_writer = tf.summary.FileWriter(LOG_DIR, graph=None)
-path_for_metadata = os.path.join(LOG_DIR,'metadata.tsv',)
-with open(path_for_metadata,'w') as f:
-    f.write("Index\tLabel\n")
-    for index,label in enumerate(l):
-        f.write("%d\t%s\n" % (index,label))
-
-embedding_var = tf.Variable(z, name='z',trainable=False)
-embedding = config.embeddings.add()
-embedding.tensor_name = embedding_var.name
-embedding.metadata_path = os.path.basename(path_for_metadata)
-
-projector.visualize_embeddings(summary_writer, config)
-
-saver = tf.train.Saver(max_to_keep=1)
-sess.run(tf.global_variables_initializer())
-saver.save(sess, os.path.join(LOG_DIR, 'z.ckpt'))
-
-if vae.l_dim != 2:
-    if training_success:
-        print("training done.")
-    print("done.")
-    sys.exit(0)
+with h5py.File(path, "r") as f:
+    print(f['latent'].shape)
+    print(z['latent'].shape)
+print(img_count)
 
 
-print(z.shape)
-plt.figure(figsize=(10, 8)) 
-plt.scatter(z[:, 0], z[:, 1], c=l)
-plt.colorbar()
-plt.grid()
-plt.savefig('result_latent_embedding.png')
 
 
-# Stop the threads
-coord.request_stop()
-# Wait for threads to stop
-coord.join(threads)       
 
-if training_success:
-    print("training done.")
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# TODO traverse through latent space in one single dimention at one point?
