@@ -141,7 +141,7 @@ print("OK")
 
 import h5py
 path = '/media/external/scisoft/fc-vae-gan/data/latent.h5'
-if not os.path.exists(path):
+if True:#not os.path.exists(path):
     os.remove(path)
     img_count = 0
     with h5py.File(path, "a") as f:
@@ -153,10 +153,10 @@ if not os.path.exists(path):
 
             intersect = num_of_interest.intersection(set(list(lbl.ravel())))
             if len(list(intersect))==0:
-                print('skipped')
+                print(ind,NUM_EXAMPLES_TRAIN,'skipped')
                 continue
                 
-            print('processing')
+            print(ind,NUM_EXAMPLES_TRAIN,'processing')
             x_hat,z,x_p = model.sess.run([model.x_hat,model.z,model.x_p], feed_dict={model.x: x,})
             zshape = np.array(z.shape)
 
@@ -172,9 +172,9 @@ if not os.path.exists(path):
 
             if img_count == 0:
                 zset = f.create_dataset('latent',
-                    (newshape[0],latent_dim), maxshape=(None,latent_dim),dtype=np.int, chunks=(10**4,latent_dim))
+                    (newshape[0],latent_dim), maxshape=(None,latent_dim),dtype=np.float, chunks=(10**4,latent_dim))
                 lset = f.create_dataset('label',
-                    (newshape[0],label_dim,), maxshape=(None,label_dim),dtype=np.float, chunks=(10**4,label_dim))
+                    (newshape[0],label_dim,), maxshape=(None,label_dim),dtype=np.int, chunks=(10**4,label_dim))
                 zset[:] = z
                 lset = lbl
             else:
@@ -186,30 +186,15 @@ if not os.path.exists(path):
 
                 zset[-newshape[0]:,:]=z
                 lset[-newshape[0]:,:]=lbl
-
+        
             img_count+=1
+            #if img_count > 5:
+            #    break
     print(img_count)
     
 with h5py.File(path, "r") as f:
     print(f['latent'].shape)
     print(f['label'].shape)
-
-
-print('training tsne...')
-tsne_weight_file = os.path.join(MODEL_DIR,'tsne.hdf5')
-tsne_high_dims = params['latent_dims'][-1]
-tsne_num_outputs = 2
-tsne_perplexity = 10
-tsne_dropout=0.0
-
-tsne = Parametric_tSNE(tsne_high_dims, tsne_num_outputs, tsne_perplexity, dropout=tsne_dropout)
-tsne.fit(z,verbose=1,epochs=5,)
-tsne.save_model(tsne_weight_file)
-print('done training tsne...')
-
-
-
-
 
 
 

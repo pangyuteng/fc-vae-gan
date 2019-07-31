@@ -1,0 +1,69 @@
+import matplotlib as mpl
+mpl.use('Agg')
+import matplotlib.pyplot as plt
+
+import os, sys
+import numpy as np
+import tensorflow as tf
+from tsne import Parametric_tSNE
+import h5py 
+
+# configure Tensorflow
+session_conf = tf.ConfigProto(intra_op_parallelism_threads=1, inter_op_parallelism_threads=1)
+session_conf.gpu_options.allow_growth=True
+
+# intialize TF
+tf.reset_default_graph()
+sess = tf.Session(graph=tf.get_default_graph(), config=session_conf)
+init = tf.global_variables_initializer()
+sess.run(init)
+
+# import stuff.
+from fcvaegan import (
+    Model,
+    MODEL_DIR,
+    INPUT_TENSOR_NAME,
+    SIGNATURE_NAME,
+    read_and_decode,
+    PARAMS,
+    W,H,C,CY,
+    TRAIN_DIR,
+    NUM_EXAMPLES_TRAIN,
+    NUM_EXAMPLES_VALIDATION,
+    NUM_EXAMPLES_TEST,
+)
+params = dict(PARAMS)
+params.update({
+    'is_training':True,
+    'batch_size':4,
+})
+
+
+print('training tsne...')
+tsne_weight_file = os.path.join(MODEL_DIR,'tsne.hdf5')
+tsne_high_dims = params['latent_dims'][-1]
+tsne_num_outputs = 2
+tsne_perplexity = 10
+tsne_dropout=0.0
+do_pretrain=False
+path = '/media/external/scisoft/fc-vae-gan/data/latent.h5'
+
+tsne = Parametric_tSNE(
+    tsne_high_dims, tsne_num_outputs, tsne_perplexity, 
+    dropout=tsne_dropout,
+    do_pretrain=do_pretrain)
+
+with h5py.File(path, "r") as f:
+    print(f['latent'].shape)
+    print(f['label'].shape)
+    tsne.fit(f['latent'],verbose=1,epochs=5,)
+    tsne.save_model(tsne_weight_file)
+    print('done training tsne...')
+    
+    z = f['latent'][:1000]
+    l = f['label'][:1000]
+    out = tsne.transform(z)
+    skip = 100
+    plt.scatter(out[::skip,0],out[::skip,1],c=l[::skip].squeeze())
+    plt.grid(False)
+    plt.savefig('result_latent_2d.png')

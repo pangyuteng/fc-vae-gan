@@ -337,7 +337,7 @@ class Parametric_tSNE(object):
             
             ae.compile(loss='mean_squared_error', optimizer='rmsprop')
             ae.fit(pretrain_data, pretrain_data, batch_size=batch_size, epochs=epochs,
-                   verbose=verbose)
+                   verbose=verbose,shuffle='batch')
             
         self.model = models.Sequential(self._all_layers)
 
