@@ -2,8 +2,11 @@
 
 * [x] generate example pascal dataset
     `python data/pascal.py`
-* [ ] train fc-vae-gan with pascal dataset
-    `python train.py`
-* [ ] generate latent space and perform dimension reduction
+* [x] train fc-vae-gan with pascal dataset
+    `python fcvaegan.py`
+* [x] generate latent space and perform dimension reduction
+    `python gen_latent.py`
+    `python train_tsne.py`
+    leftovers: 
 * [ ] visualize 2d mapped latent variables with using label as overlay color
 
