@@ -181,8 +181,8 @@ with h5py.File(path, "a") as f:
             zset = f['latent']
             lset = f['label']
             
-            zset.resize((zset.shape[0]+newshape[0],zset.shape[1]), axis=0)
-            lset.resize((lset.shape[0]+newshape[0],lset.shape[1]), axis=0)
+            zset.resize(zset.shape[0]+newshape[0], axis=0)
+            lset.resize(lset.shape[0]+newshape[0], axis=0)
             
             zset[-newshape[0]:,:]=z
             lset[-newshape[0]:,:]=lbl
