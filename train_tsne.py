@@ -44,7 +44,7 @@ tsne_weight_file = os.path.join(MODEL_DIR,'tsne.hdf5')
 tsne_high_dims = params['latent_dims'][-1]
 tsne_num_outputs = 2
 tsne_perplexity = 5
-tsne_dropout = 0.0
+tsne_dropout = 0.3
 do_pretrain = False
 batch_size = 128
 path = '/media/external/scisoft/fc-vae-gan/data/latent.h5'
@@ -57,7 +57,8 @@ tsne = Parametric_tSNE(
     dropout=tsne_dropout,
     do_pretrain=do_pretrain)
 
-if True: #not os.path.exists(tsne_weight_file):
+#if True:
+if not os.path.exists(tsne_weight_file):
     print('training tsne')
     with h5py.File(path, "r") as f:
         print(f['latent'].shape)
@@ -72,6 +73,8 @@ else:
 with h5py.File(path, "r") as f:
     z = f['latent'][:100000]
     l = f['label'][:100000]
+    count,bins=np.histogram(l.ravel(),bins=500,range=(0,500))
+    print(count)
     out = tsne.transform(z)
     skip = 100
     plt.scatter(out[::skip,0],out[::skip,1],c=l[::skip].squeeze())

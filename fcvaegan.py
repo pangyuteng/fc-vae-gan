@@ -496,12 +496,12 @@ PARAMS = {
     'data_dims': [W,H,C],
     'is_training':True,
     'batch_size':4,
-    'warmup_until':1000000,
+    'warmup_until':1e15,#1000000,
     'g_scale_factor':0.2,
     'd_scale_factor':0.2,
     'recon_const':0.0,
-    'latent_factor':0.5,
-    'perceptual_factor':0.25,
+    'latent_factor':10,#0.5,
+    'perceptual_factor':0.25,#0.25,
     'stride':[2,2,2],
 }
 epochs = 80000
@@ -536,7 +536,7 @@ def main(training,warm_start,batch_size,debug):
     init = tf.global_variables_initializer()
     sess.run(init)
 
-    steps_per_epoch = int(num_samples / batch_size)
+    steps_per_epoch = int(float(NUM_EXAMPLES_TRAIN) / batch_size)
     print(steps_per_epoch)
 
     total_steps = round(float(steps_per_epoch) * epochs)
