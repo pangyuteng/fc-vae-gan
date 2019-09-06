@@ -7,9 +7,10 @@ import shutil
 import numpy as np
 import tensorflow as tf
 
-epsilon = 1e-10
-infinite = 1e10
+epsilon = 1e-8
+infinite = 1e15
 SEED = 42
+np.random.seed(SEED)
 tf.random.set_random_seed(SEED)
 tf.logging.set_verbosity(tf.logging.INFO)
 
@@ -173,15 +174,23 @@ class Model(object):
             conv2 = conv2d_bn_lrelu(
                 conv1, self.cs[level], self.ks, 1, is_training)
                             
-            mu = slim.convolution2d(
-                conv2, self.latent_dims[level], [1,1],
-                stride=1, padding='SAME',activation_fn=tf.identity)
+            #mu = slim.convolution2d(
+            #    conv2, self.latent_dims[level], [1,1],
+            #    stride=1, padding='SAME',activation_fn=tf.identity)
+            
 
+            # set mu layer to have specified weight params-attempt to resolve nan error..
+            mu = conv2d(
+                conv2, self.latent_dims[level], [1,1], 1,
+                activation_fn=tf.identity,
+                weights_initializer=tf.zeros_initializer(),
+                weights_regularizer=tf.contrib.layers.l2_regularizer(0.01))
+            # https://stackoverflow.com/questions/49634488/keras-variational-autoencoder-nan-loss
             sd = conv2d(
                 conv2, self.latent_dims[level], [1,1], 1,
                 activation_fn=tf.sigmoid,
                 weights_initializer=tf.zeros_initializer(),
-                weights_regularizer=tf.contrib.layers.l2_regularizer(2.5e-5))
+                weights_regularizer=tf.contrib.layers.l2_regularizer(0.01))
 
             self._printout(conv2,scope_text)
             
@@ -265,8 +274,7 @@ class Model(object):
         warmup_until = self.params['warmup_until']
         
         self.warmup =  1 - tf.exp(-1.*current_step/warmup_until)
-        self.warmup *= 0.5
-
+        
         self.recon_const = 1/np.prod(self.data_dims)
         self.recon_const *= self.params['recon_const']
 
@@ -339,6 +347,7 @@ class Model(object):
         # https://stackoverflow.com/questions/36498127/how-to-apply-gradient-clipping-in-tensorflow
         def get_op(loss,lr,var_list,global_step):
             opt = tf.train.RMSPropOptimizer(learning_rate=lr,epsilon=epsilon)
+            #opt = tf.train.AdamOptimizer(learning_rate=lr,epsilon=epsilon)
             grads, vars = zip(*opt.compute_gradients(loss,var_list=var_list))
             grads, norm = tf.clip_by_global_norm(grads, 1.0)
             train_op = opt.apply_gradients(zip(grads,vars),global_step=global_step)
@@ -491,16 +500,16 @@ NUM_EXAMPLES_TRAIN,NUM_EXAMPLES_VALIDATION,NUM_EXAMPLES_TEST = (
 
 
 PARAMS = {
-    'learning_rate': 1e-6,
+    'learning_rate': 1e-8,
     'latent_dims':[10,10,10],
     'data_dims': [W,H,C],
     'is_training':True,
     'batch_size':4,
-    'warmup_until':1e15,#1000000,
+    'warmup_until':10000,#1000000,
     'g_scale_factor':0.2,
     'd_scale_factor':0.2,
     'recon_const':0.0,
-    'latent_factor':10,#0.5,
+    'latent_factor':1,#0.5,
     'perceptual_factor':0.25,#0.25,
     'stride':[2,2,2],
 }
