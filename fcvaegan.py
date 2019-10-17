@@ -325,7 +325,6 @@ class Model(object):
         self.d_real_loss = tf.reduce_mean(
             tf.nn.sigmoid_cross_entropy_with_logits(labels=_like('ones',self.d,self.d_scale_factor), logits=tf.clip_by_value(self.d,epsilon,1.0)))
         
-
         self.d_loss = self.d_fake_loss + self.d_hat_loss + self.d_real_loss
         tf.verify_tensor_all_finite(self.d_loss, "d_loss not finite!")
         
@@ -500,16 +499,16 @@ NUM_EXAMPLES_TRAIN,NUM_EXAMPLES_VALIDATION,NUM_EXAMPLES_TEST = (
 
 
 PARAMS = {
-    'learning_rate': 1e-8,
+    'learning_rate': 1e-4,
     'latent_dims':[10,10,10],
     'data_dims': [W,H,C],
     'is_training':True,
     'batch_size':4,
-    'warmup_until':10000,#1000000,
+    'warmup_until':1000,#1000000,
     'g_scale_factor':0.2,
     'd_scale_factor':0.2,
     'recon_const':0.0,
-    'latent_factor':1,#0.5,
+    'latent_factor':0.01,#0.5,
     'perceptual_factor':0.25,#0.25,
     'stride':[2,2,2],
 }
@@ -619,7 +618,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-t','--training',type=str,choices=['False','True'],default='True')
     parser.add_argument('-w','--warm_start',type=str,choices=['False','True'],default='False')
-    parser.add_argument('-b','--batch_size',type=int,default=4)
+    parser.add_argument('-b','--batch_size',type=int,default=8)
     parser.add_argument('-d','--debug',type=str,choices=['False','True'],default='False')
     args = parser.parse_args()
     training = eval(args.training)
