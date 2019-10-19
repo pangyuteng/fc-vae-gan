@@ -279,7 +279,7 @@ class Model(object):
         self.warmup =  1 - tf.exp(-1.*current_step/warmup_until)
         
         self.recon_const = 1/np.prod(self.data_dims)
-        self.recon_const *= self.params['recon_const']
+        self.recon_const *= self.params['recon_factor']
 
         self.z_const = 1/np.prod(self.z.get_shape().as_list()[1:])
         self.z_const *= self.params['latent_factor']
@@ -293,9 +293,9 @@ class Model(object):
         self.e_loss += self.recon_loss*self.recon_const
         self.e_loss += self.z_loss*self.z_const
         self.e_loss += -self.perceptual_loss*self.perceptual_const
-
+        self.e_loss = tf.clip_by_value(self.e_loss,-1*infinite,infinite)
         tf.verify_tensor_all_finite(self.e_loss, "e_loss not finite!")
-
+        
         self.g_scale_factor = self.params['g_scale_factor']
         self.d_scale_factor = self.params['d_scale_factor']
         
@@ -312,10 +312,11 @@ class Model(object):
         # GENERATOR LOSS
         self.g_loss = 0 
         self.g_loss += self.recon_loss*self.recon_const 
-        self.g_loss += self.g_gen_loss 
-        self.g_loss += self.g_fake_loss 
-        self.g_loss += self.g_real_loss 
+        self.g_loss += self.g_gen_loss*self.params['gen_factor']
+        self.g_loss += self.g_fake_loss*self.params['gen_factor']
+        self.g_loss += self.g_real_loss *self.params['gen_factor']
         self.g_loss += -self.perceptual_loss*self.perceptual_const
+        self.g_loss = tf.clip_by_value(self.g_loss,-1*infinite,infinite)
         tf.verify_tensor_all_finite(self.g_loss, "g_loss not finite!")
 
         
@@ -329,7 +330,11 @@ class Model(object):
             tf.nn.sigmoid_cross_entropy_with_logits(labels=_like('ones',self.d,self.d_scale_factor), logits=tf.clip_by_value(self.d,epsilon,1.0)))
         
         # DISCRIMINATOR LOSS
-        self.d_loss = self.d_fake_loss + self.d_hat_loss + self.d_real_loss
+        self.d_loss = 0
+        self.d_loss += self.d_fake_loss*self.params['discr_factor']
+        self.d_loss += self.d_hat_loss*self.params['discr_factor']
+        self.d_loss += self.d_real_loss*self.params['discr_factor']
+        self.d_loss = tf.clip_by_value(self.d_loss,-1*infinite,infinite)
         tf.verify_tensor_all_finite(self.d_loss, "d_loss not finite!")
         
         self.t_vars = tf.trainable_variables()
@@ -510,16 +515,18 @@ PARAMS = {
     'encoder_learning_rate': 1e-4,
     'decoder_learning_rate': 1e-4,
     'discr_learning_rate': 1e-4*0.5,
-    'latent_dims':[None,None,10],
+    'latent_dims':[None,None,5],
     'data_dims': [W,H,C],
     'is_training':True,
-    'batch_size':12,
+    'batch_size':32,
     'warmup_until':10000,
-    'g_scale_factor':0.1,
-    'd_scale_factor':0.1,
-    'recon_const':0.0,
+    'g_scale_factor':0.2,
+    'd_scale_factor':0.2,
+    'recon_factor':0.0,
     'latent_factor':0.01,
     'perceptual_factor':0.25,
+    'gen_factor':0.5,
+    'discr_factor':0.5,
     'stride':[2,2,2],
     'num_outputs': [32,64,128],
     'kernel_size': [3,3],
