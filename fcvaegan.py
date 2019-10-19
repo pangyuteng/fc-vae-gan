@@ -508,7 +508,7 @@ PARAMS = {
     'g_scale_factor':0.2,
     'd_scale_factor':0.2,
     'recon_const':0.0,
-    'latent_factor':0.01,#0.5,
+    'latent_factor':0.1,#0.5,
     'perceptual_factor':0.25,#0.25,
     'stride':[2,2,2],
 }
