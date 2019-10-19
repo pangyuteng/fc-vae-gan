@@ -12,6 +12,20 @@ conv2d = tf.contrib.layers.convolution2d
 conv2d_t = tf.contrib.layers.convolution2d_transpose
 fc_layer = tf.contrib.layers.fully_connected
 
+def conv2d_bn_latent(inputs, num_outputs, kernel_size, stride, 
+    weights_initializer=tf.random_normal_initializer(stddev=0.02),
+    weights_regularizer=tf.contrib.layers.l2_regularizer(2.5e-5),
+    is_training=True,activation_fn=tf.identity,cliprange=None):
+    conv = tf.contrib.layers.convolution2d(inputs, num_outputs, kernel_size, stride,
+        weights_initializer=weights_initializer,
+        weights_regularizer=weights_regularizer,
+        activation_fn=activation_fn)
+    conv = tf.contrib.layers.batch_norm(conv, is_training=is_training)
+    if cliprange is not None:
+        mymin,mymax = cliprange
+        conv = tf.clip_by_value(conv,mymin,mymax)
+    
+    return conv
 
 def conv2d_bn_lrelu(inputs, num_outputs, kernel_size, stride, is_training=True):
     conv = tf.contrib.layers.convolution2d(inputs, num_outputs, kernel_size, stride,

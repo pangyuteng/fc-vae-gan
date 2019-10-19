@@ -217,7 +217,7 @@ def read_and_decode(filename_queue):
     image = tf.decode_raw(features['image_raw'], tf.uint8)
     image = tf.reshape(image, [w,h,c])
     image = tf.cast(image, tf.float32) * (1. / 255)
-    
+
     label = tf.decode_raw(features['label_raw'], tf.uint16)
     label = tf.reshape(label, [w,h,cy])
     label = tf.cast(label, tf.uint16)

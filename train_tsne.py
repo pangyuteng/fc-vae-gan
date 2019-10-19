@@ -49,6 +49,9 @@ do_pretrain = False
 batch_size = 128
 path = '/media/external/scisoft/fc-vae-gan/data/latent.h5'
 
+
+#for tsne_perplexity in [5,10,15,30,60]:
+
 tsne = Parametric_tSNE(
     tsne_high_dims,
     tsne_num_outputs,

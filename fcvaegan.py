@@ -31,32 +31,28 @@ conv2d = tf.contrib.layers.convolution2d
 
 
 from abstract_network import (
+conv2d_bn_latent,
 conv2d_bn_lrelu,
 conv2d_t_bn_lrelu,
 fc_bn_lrelu,
 )
 
-
 class Model(object):
 
-    def __init__(self, 
-        learning_rate=None,
-        data_dims=None,
-        latent_dims=None,
-        is_training=None,
-        batch_size=None,
-        **params,
-        ):     
-        self.is_training = is_training
-        self.learning_rate = learning_rate
-        self.data_dims = data_dims
-        self.latent_dims  = latent_dims
-        self.batch_size  = batch_size
-        self.params = params
+    def __init__(self,**params):
 
-        self.cs = [32,64,128,] # num_outputs
-        self.ks = [5,5] # kernel_size
+        self.is_training = params['is_training']
+        self.encoder_learning_rate = params['encoder_learning_rate']
+        self.decoder_learning_rate = params['decoder_learning_rate']
+        self.discr_learning_rate = params['discr_learning_rate']
+        self.data_dims = params['data_dims']
+        self.latent_dims  = params['latent_dims']
+        self.batch_size  = params['batch_size']
         self.stride = params['stride']
+        self.num_outputs = params['num_outputs']
+        self.kernel_size = params['kernel_size']
+
+        self.params = params # got tired of ...added params
 
     def _build(self,input_layer):
         
@@ -83,17 +79,18 @@ class Model(object):
         self.noise0 = tf.random_normal(shape=tf.shape(self.mu0),mean=0.0,stddev=1.0)
         self.z = self.mu0 + tf.multiply(self.sd0,self.noise0)
         
-
         self._printout(self.z,'latent shape (self.z)')
-
-        self.zp = self.z+tf.random_normal(shape=tf.shape(self.z), mean=0, stddev=0.5, dtype=tf.float32,seed=SEED)
+        
+        # flip the z and add noise it.
+        self.zp = -1.0*self.z+tf.random_normal(shape=tf.shape(self.z), mean=0, stddev=0.5, dtype=tf.float32,seed=SEED)
+        self.zp = tf.clip_by_value(self.zp,-1*infinite,infinite)
 
         # generator
         convt0 = self._decoder(self.z,2,name='DEC',**kwargs)
         convt1 = self._decoder(convt0,1,name='DEC',**kwargs) 
         self.x_hat = self._decoder(convt1,0,name='DEC',**kwargs)
         self.x_hat = tf.clip_by_value(self.x_hat,0.0,1.0)
-
+        
         convt0 = self._decoder(self.zp,2,name='DEC',reuse=True,**kwargs)
         convt1 = self._decoder(convt0,1,name='DEC',reuse=True,**kwargs) 
         self.x_p = self._decoder(convt1,0,name='DEC',reuse=True,**kwargs)
@@ -155,9 +152,9 @@ class Model(object):
                 scope.reuse_variables()
                 
             conv1 = conv2d_bn_lrelu(
-                 x, self.cs[level], self.ks, self.stride[level], is_training)
+                 x, self.num_outputs[level], self.kernel_size, self.stride[level], is_training)
             conv2 = conv2d_bn_lrelu(
-                 conv1, self.cs[level], self.ks, 1, is_training)
+                 conv1, self.num_outputs[level], self.kernel_size, 1, is_training)
 
             self._printout(conv2,scope_text)
             return conv2
@@ -169,28 +166,28 @@ class Model(object):
                 scope.reuse_variables()
             
             conv1 = conv2d_bn_lrelu(
-                 x, self.cs[level], self.ks, 1, is_training)
+                 x, self.num_outputs[level], self.kernel_size, 1, is_training)
             
             conv2 = conv2d_bn_lrelu(
-                conv1, self.cs[level], self.ks, 1, is_training)
-                            
-            #mu = slim.convolution2d(
-            #    conv2, self.latent_dims[level], [1,1],
-            #    stride=1, padding='SAME',activation_fn=tf.identity)
+                conv1, self.num_outputs[level], self.kernel_size, 1, is_training)
             
-
             # set mu layer to have specified weight params-attempt to resolve nan error..
-            mu = conv2d(
-                conv2, self.latent_dims[level], [1,1], 1,
-                activation_fn=tf.identity,
-                weights_initializer=tf.zeros_initializer(),
-                weights_regularizer=tf.contrib.layers.l2_regularizer(0.01))
             # https://stackoverflow.com/questions/49634488/keras-variational-autoencoder-nan-loss
-            sd = conv2d(
-                conv2, self.latent_dims[level], [1,1], 1,
-                activation_fn=tf.sigmoid,
+            
+            mu = conv2d_bn_latent(conv2,self.latent_dims[level], [3,3], 1,
+                is_training=is_training,
                 weights_initializer=tf.zeros_initializer(),
-                weights_regularizer=tf.contrib.layers.l2_regularizer(0.01))
+                weights_regularizer=tf.contrib.layers.l1_regularizer(0.01),
+                activation_fn=tf.identity,
+                cliprange=(-1*infinite,infinite),
+            )
+            sd = conv2d_bn_latent(conv2,self.latent_dims[level], [3,3], 1,
+                is_training=is_training,
+                weights_initializer=tf.zeros_initializer(),
+                weights_regularizer=tf.contrib.layers.l1_regularizer(0.01),
+                activation_fn=tf.identity,
+                cliprange=(-1*infinite,infinite),
+            )
 
             self._printout(conv2,scope_text)
             
@@ -205,7 +202,7 @@ class Model(object):
             x = tf.concat(values=[lad], axis=-1)
                 
             conv1 = conv2d_t_bn_lrelu(
-                 x, self.cs[level], self.ks, self.stride[level], is_training)
+                 x, self.num_outputs[level], self.kernel_size, self.stride[level], is_training)
             
             if level == 0:
                 if c is None:
@@ -218,7 +215,7 @@ class Model(object):
                     activation_fn=tf.sigmoid)
             else:
                 conv2 = conv2d_t_bn_lrelu(
-                    conv1, self.cs[level], self.ks, 1, is_training)
+                    conv1, self.num_outputs[level], self.kernel_size, 1, is_training)
             
             self._printout(conv2,scope_text)
             return conv2
@@ -238,16 +235,18 @@ class Model(object):
         def _like(liketype,tensor,scale_factor,random=True):
             if liketype == 'ones':
                 if random:
-                    return tf.random_normal(shape=tensor.get_shape().as_list(), mean=1.-scale_factor, stddev=0.05, dtype=tf.float32,seed=SEED)
+                    value = tf.random_normal(shape=tensor.get_shape().as_list(), mean=1.-scale_factor, stddev=0.05, dtype=tf.float32,seed=SEED)
                 else:
-                    return tf.ones_like(tensor) - scale_factor
+                    value = tf.ones_like(tensor) - scale_factor
             elif liketype == 'zeros':
                 if random:
-                    return tf.random_normal(shape=tensor.get_shape().as_list(), mean=0.+scale_factor, stddev=0.05, dtype=tf.float32,seed=SEED)
+                    value = tf.random_normal(shape=tensor.get_shape().as_list(), mean=0.+scale_factor, stddev=0.05, dtype=tf.float32,seed=SEED)
                 else:
-                    return tf.zeros_like(tensor) + scale_factor
+                    value = tf.zeros_like(tensor) + scale_factor
             else:
                 raise NotImplementedError()
+            
+            return tf.clip_by_value(value,0.,1.)
 
         self._printout(tensor=None,text='setup loss started...')
         # Loss
@@ -334,19 +333,23 @@ class Model(object):
         self.g_vars = [var for var in self.t_vars if 'DEC' in var.name]
         self.d_vars = [var for var in self.t_vars if 'DISCR' in var.name]
 
-        self.e_lr = tf.train.exponential_decay(self.learning_rate,
+        self.e_lr = tf.train.exponential_decay(self.encoder_learning_rate,
             global_step=global_step, decay_steps=10000, decay_rate=0.98)
-        self.g_lr = tf.train.exponential_decay(self.learning_rate,
+        self.g_lr = tf.train.exponential_decay(self.decoder_learning_rate,
             global_step=global_step, decay_steps=10000, decay_rate=0.98)
-        self.d_lr = tf.train.exponential_decay(self.learning_rate,
+        self.d_lr = tf.train.exponential_decay(self.discr_learning_rate,
             global_step=global_step, decay_steps=10000, decay_rate=0.98)
         
         # NAN loss. clipping, norm, nan checks...
         # https://towardsdatascience.com/debugging-a-machine-learning-model-written-in-tensorflow-and-keras-f514008ce736
         # https://stackoverflow.com/questions/36498127/how-to-apply-gradient-clipping-in-tensorflow
         def get_op(loss,lr,var_list,global_step):
-            opt = tf.train.RMSPropOptimizer(learning_rate=lr,epsilon=epsilon)
-            #opt = tf.train.AdamOptimizer(learning_rate=lr,epsilon=epsilon)
+            if self.params['optimizer'] == 'rmsprop':
+                opt = tf.train.RMSPropOptimizer(learning_rate=lr,epsilon=epsilon)
+            elif self.params['optimizer'] == 'adam':
+                opt = tf.train.AdamOptimizer(learning_rate=lr,epsilon=epsilon)
+            else:
+                raise NotImplementedError()
             grads, vars = zip(*opt.compute_gradients(loss,var_list=var_list))
             grads, norm = tf.clip_by_global_norm(grads, 1.0)
             train_op = opt.apply_gradients(zip(grads,vars),global_step=global_step)
@@ -499,18 +502,23 @@ NUM_EXAMPLES_TRAIN,NUM_EXAMPLES_VALIDATION,NUM_EXAMPLES_TEST = (
 
 
 PARAMS = {
-    'learning_rate': 1e-4,
-    'latent_dims':[10,10,10],
+    'encoder_learning_rate': 1e-4,
+    'decoder_learning_rate': 1e-4,
+    'discr_learning_rate': 1e-4*0.5,
+    'latent_dims':[None,None,10],
     'data_dims': [W,H,C],
     'is_training':True,
     'batch_size':4,
-    'warmup_until':1000,#1000000,
-    'g_scale_factor':0.2,
-    'd_scale_factor':0.2,
+    'warmup_until':10000,
+    'g_scale_factor':0.1,
+    'd_scale_factor':0.1,
     'recon_const':0.0,
-    'latent_factor':0.1,#0.5,
-    'perceptual_factor':0.25,#0.25,
+    'latent_factor':0.1,
+    'perceptual_factor':0.25,
     'stride':[2,2,2],
+    'num_outputs': [32,64,128],
+    'kernel_size': [3,3],
+    'optimizer': 'rmsprop' #['rmsprop','adam']
 }
 epochs = 80000
 
@@ -601,6 +609,8 @@ def main(training,warm_start,batch_size,debug):
             training_success=True
         except:
             traceback.print_exc()
+            print('!!!!ahhhhhhhhhhhh')
+            sys.exit(1)
 
         evaluation = estimator.evaluate(input_fn=train_input_fn,steps=500)
         print("Training Set:")
