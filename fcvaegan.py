@@ -523,7 +523,7 @@ PARAMS = {
     'g_scale_factor':0.2,
     'd_scale_factor':0.2,
     'recon_factor':0.0,
-    'latent_factor':0.01,
+    'latent_factor':0.1,
     'perceptual_factor':0.25,
     'gen_factor':0.5,
     'discr_factor':0.5,
@@ -532,7 +532,7 @@ PARAMS = {
     'kernel_size': [3,3],
     'optimizer': 'rmsprop' #['rmsprop','adam']
 }
-epochs = 80000
+epochs = 8000
 
 # using main, so tf_debug can be used.
 def main(training,warm_start,batch_size,debug):

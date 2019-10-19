@@ -40,7 +40,6 @@ params.update({
 
 
 print('training tsne...')
-tsne_weight_file = os.path.join(MODEL_DIR,'tsne.hdf5')
 tsne_high_dims = params['latent_dims'][-1]
 tsne_num_outputs = 2
 tsne_perplexity = 5
@@ -50,36 +49,38 @@ batch_size = 128
 path = '/media/external/scisoft/fc-vae-gan/data/latent.h5'
 
 
-#for tsne_perplexity in [5,10,15,30,60]:
+for tsne_perplexity in [5,10,15,30,60]:
 
-tsne = Parametric_tSNE(
-    tsne_high_dims,
-    tsne_num_outputs,
-    tsne_perplexity, 
-    batch_size=batch_size,
-    dropout=tsne_dropout,
-    do_pretrain=do_pretrain)
+    tsne_weight_file = os.path.join(MODEL_DIR,'tsne_{}.hdf5'.format(tsne_perplexity))
 
-#if True:
-if not os.path.exists(tsne_weight_file):
-    print('training tsne')
+    tsne = Parametric_tSNE(
+        tsne_high_dims,
+        tsne_num_outputs,
+        tsne_perplexity, 
+        batch_size=batch_size,
+        dropout=tsne_dropout,
+        do_pretrain=do_pretrain)
+
+    if True:
+    #if not os.path.exists(tsne_weight_file):
+        print('training tsne')
+        with h5py.File(path, "r") as f:
+            print(f['latent'].shape)
+            print(f['label'].shape)
+            tsne.fit(f['latent'],verbose=1,epochs=5,)
+            tsne.save_model(tsne_weight_file)
+            print('done training tsne...')
+    else:
+        print('loading pretrained tsne')
+        tsne.restore_model(tsne_weight_file)
+
     with h5py.File(path, "r") as f:
-        print(f['latent'].shape)
-        print(f['label'].shape)
-        tsne.fit(f['latent'],verbose=1,epochs=5,)
-        tsne.save_model(tsne_weight_file)
-        print('done training tsne...')
-else:
-    print('loading pretrained tsne')
-    tsne.restore_model(tsne_weight_file)
-
-with h5py.File(path, "r") as f:
-    z = f['latent'][:100000]
-    l = f['label'][:100000]
-    count,bins=np.histogram(l.ravel(),bins=500,range=(0,500))
-    print(count)
-    out = tsne.transform(z)
-    skip = 100
-    plt.scatter(out[::skip,0],out[::skip,1],c=l[::skip].squeeze())
-    plt.grid(False)
-    plt.savefig('result_latent_2d.png')
+        z = f['latent'][:100000]
+        l = f['label'][:100000]
+        count,bins=np.histogram(l.ravel(),bins=500,range=(0,500))
+        print(count)
+        out = tsne.transform(z)
+        skip = 100
+        plt.scatter(out[::skip,0],out[::skip,1],c=l[::skip].squeeze())
+        plt.grid(False)
+        plt.savefig('result_latent_2d_{}.png'.format(tsne_perplexity))
