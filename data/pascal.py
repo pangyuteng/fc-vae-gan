@@ -22,7 +22,7 @@ validation_filename = os.path.join(TF_DATA_DIR,'validation.tfrecords')
 test_filename = os.path.join(TF_DATA_DIR,'test.tfrecords')
 expected_file_list = [train_filename,validation_filename,test_filename]
 
-w = h = 256
+w = h = 128
 c = 3
 cy = 1
 

@@ -138,8 +138,9 @@ class Model(object):
             conv = self._encoder(in_conv,2,name=scope_text,reuse=reuse,is_training=is_training)
             _shape = conv.get_shape().as_list()
             flat = slim.flatten(conv)
-            flat = slim.fully_connected(flat,512,activation_fn=tf.nn.relu)
-            flat = slim.fully_connected(flat,32,activation_fn=tf.nn.relu)
+            flat = fc_bn_lrelu(flat, 512, is_training=True)
+            flat = fc_bn_lrelu(flat, 512, is_training=True)
+            flat = fc_bn_lrelu(flat, 32, is_training=True)
             out = slim.fully_connected(flat, out_num,activation_fn=activation_fn)
             
             self._printout(out,'out '+scope_text)
@@ -264,14 +265,17 @@ class Model(object):
         self.recon_loss = tf.reduce_mean(recon_loss)
         tf.verify_tensor_all_finite(self.recon_loss, "recon_loss not finite!")
 
+        # latent loss
         self.z_loss = tf.reduce_mean(-0.5 * tf.reduce_sum(1 + self.z - tf.square(self.mu0) - tf.exp(self.sd0), axis=1))
-        
         tf.verify_tensor_all_finite(self.z_loss, "z_loss not finite!")
+
+        # perceptual loss
+        self.perceptual_loss = tf.reduce_mean(tf.reduce_sum(self.NLLNormal(self.style_hat, self.style), [1,2,3]))
+        tf.verify_tensor_all_finite(self.perceptual_loss, "perceptual_loss not finite!")
 
         current_step = tf.to_float(global_step)
 
         warmup_until = self.params['warmup_until']
-        
         self.warmup =  1 - tf.exp(-1.*current_step/warmup_until)
         
         self.recon_const = 1/np.prod(self.data_dims)
@@ -279,16 +283,15 @@ class Model(object):
 
         self.z_const = 1/np.prod(self.z.get_shape().as_list()[1:])
         self.z_const *= self.params['latent_factor']
-        
-        # perceptual loss
-        self.perceptual_loss = tf.reduce_mean(tf.reduce_sum(self.NLLNormal(self.style_hat, self.style), [1,2,3]))
+        self.z_const *= self.warmup
+
         self.perceptual_const = 1/np.prod(self.style.get_shape().as_list()[1:])
         self.perceptual_const *= self.params['perceptual_factor']
         
         # ENCODER LOSS = recon + latent + loc
         self.e_loss = 0
         self.e_loss += self.recon_loss*self.recon_const
-        self.e_loss += self.z_loss*self.warmup*self.z_const
+        self.e_loss += self.z_loss*self.z_const
         self.e_loss += -self.perceptual_loss*self.perceptual_const
 
         tf.verify_tensor_all_finite(self.e_loss, "e_loss not finite!")
@@ -306,6 +309,7 @@ class Model(object):
         self.g_real_loss = tf.reduce_mean(
             tf.nn.sigmoid_cross_entropy_with_logits(labels=_like('zeros',self.d,self.g_scale_factor), logits=tf.clip_by_value(self.d,epsilon,1.0)))
 
+        # GENERATOR LOSS
         self.g_loss = 0 
         self.g_loss += self.recon_loss*self.recon_const 
         self.g_loss += self.g_gen_loss 
@@ -314,7 +318,7 @@ class Model(object):
         self.g_loss += -self.perceptual_loss*self.perceptual_const
         tf.verify_tensor_all_finite(self.g_loss, "g_loss not finite!")
 
-        # D loss
+        
         self.d_fake_loss = tf.reduce_mean(
             tf.nn.sigmoid_cross_entropy_with_logits(labels=_like('zeros',self.d_p,self.d_scale_factor), logits=tf.clip_by_value(self.d_p,epsilon,1.0)))
         
@@ -324,6 +328,7 @@ class Model(object):
         self.d_real_loss = tf.reduce_mean(
             tf.nn.sigmoid_cross_entropy_with_logits(labels=_like('ones',self.d,self.d_scale_factor), logits=tf.clip_by_value(self.d,epsilon,1.0)))
         
+        # DISCRIMINATOR LOSS
         self.d_loss = self.d_fake_loss + self.d_hat_loss + self.d_real_loss
         tf.verify_tensor_all_finite(self.d_loss, "d_loss not finite!")
         
@@ -508,12 +513,12 @@ PARAMS = {
     'latent_dims':[None,None,10],
     'data_dims': [W,H,C],
     'is_training':True,
-    'batch_size':4,
+    'batch_size':12,
     'warmup_until':10000,
     'g_scale_factor':0.1,
     'd_scale_factor':0.1,
     'recon_const':0.0,
-    'latent_factor':0.1,
+    'latent_factor':0.01,
     'perceptual_factor':0.25,
     'stride':[2,2,2],
     'num_outputs': [32,64,128],
