@@ -514,18 +514,18 @@ NUM_EXAMPLES_TRAIN,NUM_EXAMPLES_VALIDATION,NUM_EXAMPLES_TEST = (
 
 
 PARAMS = {
-    'encoder_learning_rate': 1e-3,
-    'decoder_learning_rate': 1e-3,
-    'discr_learning_rate': 1e-3*0.5,
+    'encoder_learning_rate': 1e-4,
+    'decoder_learning_rate': 1e-4,
+    'discr_learning_rate': 1e-4*0.5,
     'latent_dims':[None,None,10],
     'data_dims': [W,H,C],
     'is_training':True,
     'batch_size': 32,
-    'warmup_until':1000.0,
+    'warmup_until':1000,
     'g_scale_factor':0.2,
     'd_scale_factor':0.2,
     'recon_factor':0.0, # TODO: cool down.
-    'latent_factor':0.5,
+    'latent_factor':0.1,
     'perceptual_factor':0.25,
     'gen_factor':0.5,
     'discr_factor':0.5,

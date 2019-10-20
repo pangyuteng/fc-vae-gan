@@ -132,7 +132,7 @@ with open('/media/external/scisoft/fc-vae-gan/data/label.yml','r') as f:
     label_dict = yaml.load(f.read())
 num_of_interest = []
 for k,v in label_dict.items():
-    if v in ['car','person','bicycle','aeroplane']:
+    if v in ['car','person','bicycle']:#,'aeroplane']:
         num_of_interest.append(k)
 num_of_interest = set(num_of_interest)
 
@@ -152,12 +152,13 @@ if True:#not os.path.exists(path):
             x = img[INPUT_TENSOR_NAME]
 
             intersect = num_of_interest.intersection(set(list(lbl.ravel())))
-            if len(list(intersect))>1:
-            #if len(list(intersect))==0:
+            
+            #if len(list(intersect))<1:
+            if len(list(intersect))==0:
                 #print(ind,NUM_EXAMPLES_TRAIN,'skipped')
                 continue
-                
-            #print(ind,NUM_EXAMPLES_TRAIN,'processing')
+               
+            print(ind,NUM_EXAMPLES_TRAIN,'processing')
             x_hat,z,x_p = model.sess.run([model.x_hat,model.z,model.x_p], feed_dict={model.x: x,})
             zshape = np.array(z.shape)
 
