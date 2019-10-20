@@ -46,7 +46,7 @@ tsne_perplexity = 5
 tsne_dropout = 0.3
 epochs = 50
 do_pretrain = False
-batch_size = 128
+batch_size = 1024
 path = '/media/external/scisoft/fc-vae-gan/data/latent.h5'
 
 

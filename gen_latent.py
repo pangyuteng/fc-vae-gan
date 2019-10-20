@@ -132,7 +132,8 @@ with open('/media/external/scisoft/fc-vae-gan/data/label.yml','r') as f:
     label_dict = yaml.load(f.read())
 num_of_interest = []
 for k,v in label_dict.items():
-    if v in ['car','person','bicycle']:#,'aeroplane']:
+    #if v in ['car','person','bicycle']:
+    if v in ['aeroplane','bird','sky']:
         num_of_interest.append(k)
 num_of_interest = set(num_of_interest)
 
@@ -153,8 +154,8 @@ if True:#not os.path.exists(path):
 
             intersect = num_of_interest.intersection(set(list(lbl.ravel())))
             
-            #if len(list(intersect))<1:
-            if len(list(intersect))==0:
+            if len(list(intersect))<2:
+            #if len(list(intersect))==0:
                 #print(ind,NUM_EXAMPLES_TRAIN,'skipped')
                 continue
                
