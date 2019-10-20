@@ -9,7 +9,7 @@ import tensorflow as tf
 
 epsilon = 1e-8
 infinite = 1e15
-SEED = 42
+SEED = 0
 np.random.seed(SEED)
 tf.random.set_random_seed(SEED)
 tf.logging.set_verbosity(tf.logging.INFO)
@@ -174,18 +174,18 @@ class Model(object):
             
             # set mu layer to have specified weight params-attempt to resolve nan error..
             # https://stackoverflow.com/questions/49634488/keras-variational-autoencoder-nan-loss
-            
+            # tf.random_normal_initializer(stddev=0.02)
             mu = conv2d_bn_latent(conv2,self.latent_dims[level], [3,3], 1,
                 is_training=is_training,
                 weights_initializer=tf.zeros_initializer(),
-                weights_regularizer=tf.contrib.layers.l1_regularizer(0.01),
+                weights_regularizer=tf.contrib.layers.l2_regularizer(1e-4),
                 activation_fn=tf.identity,
                 cliprange=(-1*infinite,infinite),
             )
             sd = conv2d_bn_latent(conv2,self.latent_dims[level], [3,3], 1,
                 is_training=is_training,
                 weights_initializer=tf.zeros_initializer(),
-                weights_regularizer=tf.contrib.layers.l1_regularizer(0.01),
+                weights_regularizer=tf.contrib.layers.l2_regularizer(1e-4),
                 activation_fn=tf.identity,
                 cliprange=(-1*infinite,infinite),
             )
@@ -361,8 +361,10 @@ class Model(object):
             else:
                 raise NotImplementedError()
             grads, vars = zip(*opt.compute_gradients(loss,var_list=var_list))
-            grads, norm = tf.clip_by_global_norm(grads, 1.0)
+            grads, norm = tf.clip_by_global_norm(grads, 5.0)
+
             train_op = opt.apply_gradients(zip(grads,vars),global_step=global_step)
+
             #_grads,norm = tf.clip_by_global_norm(grads, 5.0)
             #norm = 5.0
             #capped_gvs = [(tf.clip_by_value(g, -1.*norm, norm), v) for g,v in zip(grads,vars)]
@@ -512,25 +514,25 @@ NUM_EXAMPLES_TRAIN,NUM_EXAMPLES_VALIDATION,NUM_EXAMPLES_TEST = (
 
 
 PARAMS = {
-    'encoder_learning_rate': 1e-4,
-    'decoder_learning_rate': 1e-4,
-    'discr_learning_rate': 1e-4*0.5,
+    'encoder_learning_rate': 1e-3,
+    'decoder_learning_rate': 1e-3,
+    'discr_learning_rate': 1e-3*0.5,
     'latent_dims':[None,None,10],
     'data_dims': [W,H,C],
     'is_training':True,
-    'batch_size':32,
-    'warmup_until':10000,
+    'batch_size': 32,
+    'warmup_until':1000.0,
     'g_scale_factor':0.2,
     'd_scale_factor':0.2,
-    'recon_factor':0.0,
-    'latent_factor':0.1,
+    'recon_factor':0.0, # TODO: cool down.
+    'latent_factor':0.5,
     'perceptual_factor':0.25,
     'gen_factor':0.5,
     'discr_factor':0.5,
     'stride':[2,2,2],
     'num_outputs': [32,64,128],
     'kernel_size': [3,3],
-    'optimizer': 'rmsprop' #['rmsprop','adam']
+    'optimizer': 'adam' #['rmsprop','adam']
 }
 epochs = 8000
 
@@ -561,6 +563,7 @@ def main(training,warm_start,batch_size,debug):
     
     tf.reset_default_graph()
     sess = tf.Session(graph=tf.get_default_graph(), config=session_conf)
+    
     init = tf.global_variables_initializer()
     sess.run(init)
 
@@ -585,7 +588,7 @@ def main(training,warm_start,batch_size,debug):
             ws = tf.estimator.WarmStartSettings(ckpt_to_initialize_from=MODEL_DIR)
         else:
             ws = None
-
+        
         estimator = tf.estimator.Estimator(
             model_fn,
             model_dir=MODEL_DIR,
@@ -595,7 +598,11 @@ def main(training,warm_start,batch_size,debug):
 
         hooks = []
         if debug:
-            hooks.append(tf_debug.LocalCLIDebugHook())
+            cli_debug = tf_debug.LocalCLIDebugHook()
+            cli_debug.add_tensor_filter("has_inf_or_nan", tf_debug.has_inf_or_nan)
+            hooks.append(cli_debug)
+
+        #hooks.append(tf_debug.TensorBoardDebugHook("localhost:6007",send_traceback_and_source_code=False))
 
         try:  
             
