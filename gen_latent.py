@@ -133,7 +133,7 @@ with open('/media/external/scisoft/fc-vae-gan/data/label.yml','r') as f:
 num_of_interest = []
 for k,v in label_dict.items():
     #if v in ['car','person','bicycle']:
-    if v in ['aeroplane','bird','sky']:
+    if v in ['dog','cat','person']:
         num_of_interest.append(k)
 num_of_interest = set(num_of_interest)
 
@@ -154,7 +154,7 @@ if True:#not os.path.exists(path):
 
             intersect = num_of_interest.intersection(set(list(lbl.ravel())))
             
-            if len(list(intersect))<2:
+            if len(list(intersect))<1:
             #if len(list(intersect))==0:
                 #print(ind,NUM_EXAMPLES_TRAIN,'skipped')
                 continue
@@ -172,7 +172,7 @@ if True:#not os.path.exists(path):
             label_dim = 1
             newshape = [np.prod(lshape[:-1]),label_dim]
             lbl = np.reshape(lbl,newshape)
-
+            
             if img_count == 0:
                 zset = f.create_dataset('latent',
                     (newshape[0],latent_dim), maxshape=(None,latent_dim),dtype=np.float, chunks=(10**4,latent_dim))

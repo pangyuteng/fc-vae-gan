@@ -44,8 +44,8 @@ tsne_high_dims = params['latent_dims'][-1]
 tsne_num_outputs = 2
 tsne_perplexity = 5
 tsne_dropout = 0.3
-epochs = 50
-do_pretrain = False
+epochs = 500
+do_pretrain = True
 batch_size = 1024
 path = '/media/external/scisoft/fc-vae-gan/data/latent.h5'
 
@@ -84,4 +84,4 @@ for tsne_perplexity in [5,10,15,30]:
         skip = 100
         plt.scatter(out[::skip,0],out[::skip,1],c=l[::skip].squeeze())
         plt.grid(False)
-        plt.savefig('result_latent_2d_{}.png'.format(tsne_perplexity))
+        plt.savefig('result_latent_2d_{:02d}.png'.format(tsne_perplexity))

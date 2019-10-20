@@ -20,6 +20,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.contrib.keras import models
 from tensorflow.contrib.keras import layers
+from tensorflow.contrib.keras import optimizers
 
 from .utils import calc_betas_loop
 from .utils import get_squared_cross_diff_np
