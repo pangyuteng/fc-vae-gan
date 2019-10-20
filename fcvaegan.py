@@ -9,7 +9,7 @@ import tensorflow as tf
 
 epsilon = 1e-8
 infinite = 1e15
-SEED = 0
+SEED = 42
 np.random.seed(SEED)
 tf.random.set_random_seed(SEED)
 tf.logging.set_verbosity(tf.logging.INFO)
