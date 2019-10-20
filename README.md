@@ -10,3 +10,7 @@
     leftovers: 
 * [ ] visualize 2d mapped latent variables with using label as overlay color
 
+
+```
+CUDA_VISIBLE_DEVICES=0 python fcvaegan.py;CUDA_VISIBLE_DEVICES=0 python gen_latent.py;CUDA_VISIBLE_DEVICES=0 python train_tsne.py
+```

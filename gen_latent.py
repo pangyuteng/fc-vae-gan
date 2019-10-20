@@ -132,7 +132,7 @@ with open('/media/external/scisoft/fc-vae-gan/data/label.yml','r') as f:
     label_dict = yaml.load(f.read())
 num_of_interest = []
 for k,v in label_dict.items():
-    if v in ['sky','bicycle','aeroplane']:
+    if v in ['car','person','bicycle','aeroplane']:
         num_of_interest.append(k)
 num_of_interest = set(num_of_interest)
 
@@ -146,17 +146,18 @@ if True:#not os.path.exists(path):
     img_count = 0
     with h5py.File(path, "a") as f:
         for ind in range(NUM_EXAMPLES_TRAIN,):
-            print('index',ind)
+            #print('index',ind)
 
             img, lbl = sess.run([tf_images, tf_labels])
             x = img[INPUT_TENSOR_NAME]
 
             intersect = num_of_interest.intersection(set(list(lbl.ravel())))
-            if len(list(intersect))==0:
-                print(ind,NUM_EXAMPLES_TRAIN,'skipped')
+            if len(list(intersect))>1:
+            #if len(list(intersect))==0:
+                #print(ind,NUM_EXAMPLES_TRAIN,'skipped')
                 continue
                 
-            print(ind,NUM_EXAMPLES_TRAIN,'processing')
+            #print(ind,NUM_EXAMPLES_TRAIN,'processing')
             x_hat,z,x_p = model.sess.run([model.x_hat,model.z,model.x_p], feed_dict={model.x: x,})
             zshape = np.array(z.shape)
 

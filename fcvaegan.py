@@ -515,7 +515,7 @@ PARAMS = {
     'encoder_learning_rate': 1e-4,
     'decoder_learning_rate': 1e-4,
     'discr_learning_rate': 1e-4*0.5,
-    'latent_dims':[None,None,5],
+    'latent_dims':[None,None,10],
     'data_dims': [W,H,C],
     'is_training':True,
     'batch_size':32,

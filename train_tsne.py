@@ -44,12 +44,13 @@ tsne_high_dims = params['latent_dims'][-1]
 tsne_num_outputs = 2
 tsne_perplexity = 5
 tsne_dropout = 0.3
+epochs = 5000
 do_pretrain = False
-batch_size = 128
+batch_size = 1024
 path = '/media/external/scisoft/fc-vae-gan/data/latent.h5'
 
 
-for tsne_perplexity in [5,10,15,30,60]:
+for tsne_perplexity in [5,10,15,30]:
 
     tsne_weight_file = os.path.join(MODEL_DIR,'tsne_{}.hdf5'.format(tsne_perplexity))
 
@@ -67,7 +68,7 @@ for tsne_perplexity in [5,10,15,30,60]:
         with h5py.File(path, "r") as f:
             print(f['latent'].shape)
             print(f['label'].shape)
-            tsne.fit(f['latent'],verbose=1,epochs=5,)
+            tsne.fit(f['latent'],verbose=1,epochs=epochs,)
             tsne.save_model(tsne_weight_file)
             print('done training tsne...')
     else:
