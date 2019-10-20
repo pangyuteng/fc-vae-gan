@@ -9,7 +9,7 @@ import tensorflow as tf
 
 epsilon = 1e-8
 infinite = 1e15
-SEED = 0
+SEED = 1
 np.random.seed(SEED)
 tf.random.set_random_seed(SEED)
 tf.logging.set_verbosity(tf.logging.INFO)
@@ -521,7 +521,7 @@ PARAMS = {
     'data_dims': [W,H,C],
     'is_training':True,
     'batch_size': 32,
-    'warmup_until':1000,
+    'warmup_until':50000,
     'g_scale_factor':0.2,
     'd_scale_factor':0.2,
     'recon_factor':0.0, # TODO: cool down.
