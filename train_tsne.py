@@ -45,7 +45,7 @@ tsne_num_outputs = 2
 tsne_perplexity = 5
 tsne_dropout = 0.3
 epochs = 500
-do_pretrain = True
+do_pretrain = False
 batch_size = 1024
 path = '/media/external/scisoft/fc-vae-gan/data/latent.h5'
 
@@ -76,12 +76,13 @@ for tsne_perplexity in [5,10,15,30]:
         tsne.restore_model(tsne_weight_file)
 
     with h5py.File(path, "r") as f:
-        z = f['latent'][:100000]
-        l = f['label'][:100000]
+        skip = 1000
+        z = f['latent'][::skip]
+        l = f['label'][::skip]
         count,bins=np.histogram(l.ravel(),bins=500,range=(0,500))
         print(count)
         out = tsne.transform(z)
         skip = 100
         plt.scatter(out[::skip,0],out[::skip,1],c=l[::skip].squeeze())
         plt.grid(False)
-        plt.savefig('result_latent_2d_{:02d}.png'.format(tsne_perplexity))
+        plt.savefig('result_latent_2d_{}{:02d}.png'.format(do_pretrain,tsne_perplexity))
