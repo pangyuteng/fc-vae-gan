@@ -44,7 +44,7 @@ tsne_high_dims = params['latent_dims'][-1]
 tsne_num_outputs = 2
 tsne_perplexity = 5
 tsne_dropout = 0.3
-epochs = 500
+epochs = 5
 do_pretrain = False
 batch_size = 1024
 path = '/media/external/scisoft/fc-vae-gan/data/latent.h5'
@@ -62,8 +62,8 @@ for tsne_perplexity in [5,10,15,30]:
         dropout=tsne_dropout,
         do_pretrain=do_pretrain)
 
-    if True:
-    #if not os.path.exists(tsne_weight_file):
+    #if True:
+    if not os.path.exists(tsne_weight_file):
         print('training tsne')
         with h5py.File(path, "r") as f:
             print(f['latent'].shape)
@@ -76,7 +76,7 @@ for tsne_perplexity in [5,10,15,30]:
         tsne.restore_model(tsne_weight_file)
 
     with h5py.File(path, "r") as f:
-        skip = 1000
+        skip = 1
         z = f['latent'][::skip]
         l = f['label'][::skip]
         count,bins=np.histogram(l.ravel(),bins=500,range=(0,500))

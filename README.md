@@ -30,7 +30,8 @@ For pixel classification, i.e. medical application like texture classification o
 * [x] generate latent space and perform dimension reduction
     `python gen_latent.py`
     `python train_tsne.py`
-    leftovers: 
+    leftovers:
+* [ ] merge ktex and pascal dataset to see if clustering after tsne works 
 * [ ] visualize 2d mapped latent variables with using label as overlay color
 
 
