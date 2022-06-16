@@ -1,1 +1,4 @@
 __pycache__/
+restore/*
+log
+saved_models
