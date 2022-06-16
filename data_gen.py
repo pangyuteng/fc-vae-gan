@@ -131,7 +131,28 @@ class DataGenerator(Sequence):
     def dataread(self, row):
 
         img = read_image(row)
-        
+        if self.output_shape:            
+            # orignal image shape
+            i0,i1,i2 = img.shape
+
+            # target image shape
+            o0,o1,o2,_ = self.output_shape
+
+            # we pad some values 
+            diff = np.array([i0-o0,i1-o1,i2-o2])
+            if any(diff<0):
+                padding = [(0,0) if x>=0 else (np.abs(x),np.abs(x)) for x in diff]
+                img = np.pad(img,padding,'constant',constant_values=(self.min_val,self.min_val))
+            
+            i0,i1,i2 = img.shape
+
+            # starting coordinate
+            s0 = random.choice(list(range(i0-o0))) 
+            s1 = random.choice(list(range(i1-o1)))
+            s2 = random.choice(list(range(i2-o2)))
+
+            img = img[s0:s0+o0,s1:s1+o1,s2:s2+o2]
+
         if self.augment and np.random.rand()>0.5:
             aug_img = augment(img,self.min_val)
         else:
@@ -140,31 +161,8 @@ class DataGenerator(Sequence):
         img = np.expand_dims(img,axis=-1)
         aug_img = np.expand_dims(aug_img,axis=-1)
         
-        if self.output_shape:
-            
-            # orignal image shape
-            i0,i1,i2,_ = img.shape
+        logger.debug(f'{img.shape},{aug_img.shape}')
 
-            # target image shape
-            o0,o1,o2,_ = self.output_shape
-
-            # we pad some values 
-            diff = np.array([i0-o0,i1-o1,i2-o2,0])
-            if any(diff<0):
-                padding = [(0,0) if x>=0 else (np.abs(x),np.abs(x)) for x in diff]
-                img = np.pad(img,padding,'constant',constant_values=(self.min_val,self.min_val))
-                aug_img = np.pad(aug_img,padding,'constant',constant_values=(self.min_val,self.min_val))
-            
-            i0,i1,i2,_ = img.shape
-
-            # starting coordinate
-            s0 = random.choice(list(range(i0-o0))) 
-            s1 = random.choice(list(range(i1-o1)))
-            s2 = random.choice(list(range(i2-o2)))
-
-            img = img[s0:s0+o0,s1:s1+o1,s2:s2+o2,:]
-            aug_img = aug_img[s0:s0+o0,s1:s1+o1,s2:s2+o2,:]
-            logger.debug(f'{img.shape},{aug_img.shape}')
         return img,aug_img
 
     def __len__(self):
@@ -189,6 +187,7 @@ if __name__ == "__main__":
     df = pd.read_csv(sys.argv[1])
     mygen = DataGenerator(
         df,
+        batch_size=8,output_shape=(32,128,128,1),
         shuffle=True,augment=True,
     )
     mygen.on_epoch_end()
