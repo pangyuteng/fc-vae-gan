@@ -151,7 +151,7 @@ class VAEGAN(keras.Model):
             ################################################################
             # latent -> dec > discr
             
-            latent_shape = tf.shape(z_cond)
+            latent_shape = tf.shape(z)
             z_p = tf.keras.backend.random_normal(shape=latent_shape)
             
             x_p = self.decoder(z_p)
