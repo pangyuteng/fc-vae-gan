@@ -7,9 +7,9 @@ from tensorflow.keras import layers
 import tensorflow.keras.backend as K
 
 def prepare_models(
-    input_dim=(32,128,128,1),latent_dim=(8,32,32,10),
-    num_list=[128,128],
-    dis_num_list=[32,64,128],
+    input_dim=(32,64,64,1),latent_dim=(8,16,16,10),
+    num_list=[64,64],
+    dis_num_list=[16,32,64],
     ):
 
     lx,ly,lz,lw = latent_dim
@@ -119,11 +119,13 @@ def prepare_models(
 #              https://gist.github.com/naotokui/2201cf1cab6608aee18d34c0ea748f84
 #
 class VAEGAN(keras.Model):
-    def __init__(self, beta_init=0, **kwargs):
+    def __init__(self, input_dim=(32,64,64,1),latent_dim=(8,16,16,10),beta_init=0, **kwargs):
         super(VAEGAN, self).__init__(**kwargs)
 
         self.encoder, self.decoder, self.discr, \
-            self.input_dim, self.latent_dim = prepare_models()
+            self.input_dim, self.latent_dim = prepare_models(
+                input_dim=input_dim,latent_dim=latent_dim
+            )
 
         self.beta = K.variable(beta_init,name='kl_beta')
         self.beta._trainable = False
