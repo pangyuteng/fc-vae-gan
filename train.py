@@ -25,14 +25,15 @@ if __name__ == '__main__':
         decay_steps=1000,
         decay_rate=0.96
     )        
-    input_dim=(32,32,32,1)
-    latent_dim=(8,8,8,10)
+    input_dim=(8,64,64,1)
+    latent_dim=(8,16,16,10)
+    mystrides=(1,2,2)
 
     df = pd.read_csv(csv_file)
     mygen = DataGenerator(df,output_shape=input_dim,shuffle=True,augment=True,batch_size=batch_size)
     valgen = DataGenerator(df,output_shape=input_dim,shuffle=True,augment=True,batch_size=1)
     
-    mymodel = VAEGAN(input_dim=input_dim,latent_dim=latent_dim)
+    mymodel = VAEGAN(input_dim=input_dim,latent_dim=latent_dim,mystrides=mystrides)
     mymodel.compile(optimizer=keras.optimizers.Adam(lr_schedule),run_eagerly=True)
     
     # logging

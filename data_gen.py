@@ -102,12 +102,15 @@ cutout_aug_pipeline = A.Compose([
 
 def augment(img,min_val):
 
-    cutout = (np.random.rand(8,8,8)>0.9).astype(np.float) # cut out 10% of spaces.
+    mydim = [6,8,8] # random rectangle cutouts
+    np.random.shuffle(mydim)
+    cutout = (np.random.rand(*mydim)>0.9).astype(np.float) # cut out 10% of spaces.
     cutout = resize(cutout,img.shape,order=0)
     
-    img[cutout==1] = min_val
+    aug_img = img.copy() # copy!!!
+    aug_img[cutout==1] = min_val
 
-    return img
+    return aug_img
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -156,8 +159,8 @@ class DataGenerator(Sequence):
         if self.augment and np.random.rand()>0.5:
             aug_img = augment(img,self.min_val)
         else:
-            aug_img = img
-            
+            aug_img = img.copy()
+
         img = np.expand_dims(img,axis=-1)
         aug_img = np.expand_dims(aug_img,axis=-1)
         

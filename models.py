@@ -7,7 +7,8 @@ from tensorflow.keras import layers
 import tensorflow.keras.backend as K
 
 def prepare_models(
-    input_dim=(32,64,64,1),latent_dim=(8,16,16,10),
+    input_dim=(8,64,64,1),latent_dim=(8,16,16,10),
+    mykernel=5,mystrides=(1,2,2),
     num_list=[64,64],
     dis_num_list=[16,32,64],
     ):
@@ -31,12 +32,12 @@ def prepare_models(
         encoder_inputs = keras.Input(shape=input_dim)
 
         def res_down(filters,x):
-            r = layers.Conv3D(filters, kernel_size=1, strides=2, padding='same')(x)
-            d = layers.Conv3D(filters, kernel_size=7, strides=1, padding='same')(x)
+            r = layers.Conv3D(filters, kernel_size=1, strides=mystrides, padding='same')(x)
+            d = layers.Conv3D(filters, kernel_size=mykernel, strides=1, padding='same')(x)
             d = layers.BatchNormalization()(d)
             d = layers.LeakyReLU(alpha=0.2)(d)
             d = layers.concatenate([x,d],axis=-1)
-            d = layers.Conv3D(filters, kernel_size=7, strides=2, padding='same')(d)
+            d = layers.Conv3D(filters, kernel_size=mykernel, strides=mystrides, padding='same')(d)
             d = layers.BatchNormalization()(d)
             d = layers.LeakyReLU(alpha=0.2)(d)
             d = layers.add([d,r])
@@ -60,12 +61,12 @@ def prepare_models(
     with tf.name_scope(DEC) as scope:
 
         def res_up(filters,x):
-            r = layers.Conv3DTranspose(filters, kernel_size=1, strides=2, padding='same')(x)
-            d = layers.Conv3D(filters, kernel_size=7, strides=1, padding='same')(x)
+            r = layers.Conv3DTranspose(filters, kernel_size=1, strides=mystrides, padding='same')(x)
+            d = layers.Conv3D(filters, kernel_size=mykernel, strides=1, padding='same')(x)
             d = layers.BatchNormalization()(d)
             d = layers.LeakyReLU(alpha=0.2)(d)
             d = layers.concatenate([x,d],axis=-1)
-            d = layers.Conv3DTranspose(filters, kernel_size=7, strides=2, padding='same')(d)
+            d = layers.Conv3DTranspose(filters, kernel_size=mykernel, strides=mystrides, padding='same')(d)
             d = layers.BatchNormalization()(d)
             d = layers.LeakyReLU(alpha=0.2)(d)
             d = layers.add([d,r])
@@ -79,7 +80,7 @@ def prepare_models(
 
             x = res_up(num,x)
 
-        decoder_outputs = layers.Conv3D(1, 7, activation="tanh", padding="same")(x)
+        decoder_outputs = layers.Conv3D(1, mykernel, activation="tanh", padding="same")(x)
         decoder = keras.Model(decoder_inputs, decoder_outputs, name="decoder")
         decoder.summary()
 
@@ -88,12 +89,12 @@ def prepare_models(
     with tf.name_scope(DISCR) as scope:
 
         def res_down(filters,x):
-            r = layers.Conv3D(filters, kernel_size=1, strides=2, padding='same')(x)
-            d = layers.Conv3D(filters, kernel_size=7, strides=1, padding='same')(x)
+            r = layers.Conv3D(filters, kernel_size=1, strides=mystrides, padding='same')(x)
+            d = layers.Conv3D(filters, kernel_size=mykernel, strides=1, padding='same')(x)
             d = layers.BatchNormalization()(d)
             d = layers.LeakyReLU(alpha=0.2)(d)
             d = layers.concatenate([x,d],axis=-1)
-            d = layers.Conv3D(filters, kernel_size=7, strides=2, padding='same')(d)
+            d = layers.Conv3D(filters, kernel_size=mykernel, strides=mystrides, padding='same')(d)
             d = layers.BatchNormalization()(d)
             d = layers.LeakyReLU(alpha=0.2)(d)
             d = layers.add([d,r])
@@ -106,7 +107,7 @@ def prepare_models(
             
             x = res_down(num,x)
 
-        discr_output = layers.Conv3D(1, 7, activation="sigmoid", padding="same")(x)
+        discr_output = layers.Conv3D(1, mykernel, activation="sigmoid", padding="same")(x)
         discr = keras.Model(discr_inputs,discr_output, name="discr")
         discr.summary()
 
@@ -119,12 +120,14 @@ def prepare_models(
 #              https://gist.github.com/naotokui/2201cf1cab6608aee18d34c0ea748f84
 #
 class VAEGAN(keras.Model):
-    def __init__(self, input_dim=(32,64,64,1),latent_dim=(8,16,16,10),beta_init=0, **kwargs):
+    def __init__(self, 
+        mystrides=(1,2,2),
+        input_dim=(8,64,64,1),latent_dim=(8,16,16,10),beta_init=0, **kwargs):
         super(VAEGAN, self).__init__(**kwargs)
 
         self.encoder, self.decoder, self.discr, \
             self.input_dim, self.latent_dim = prepare_models(
-                input_dim=input_dim,latent_dim=latent_dim
+                input_dim=input_dim,latent_dim=latent_dim,mystrides=mystrides,
             )
 
         self.beta = K.variable(beta_init,name='kl_beta')
