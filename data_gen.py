@@ -122,7 +122,8 @@ def read_image(row): # responsible for reading, resampling, scaling intensity to
 
             mu = np.mean(x[x>0])
             sd = np.std(x[x>0])
-            x = (x-mu)/(2*sd)
+            x = (x-mu)/(3*sd)
+            x = x.clip(-1,1)
             x_list.append(x)
 
         img = np.array(x_list)
