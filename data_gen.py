@@ -6,6 +6,7 @@ import zlib
 import logging
 logger = logging.getLogger('data_gen')
 logger.setLevel(logging.INFO)
+
 ch = logging.StreamHandler()
 ch.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -146,13 +147,17 @@ cutout_aug_pipeline = A.Compose([
 
 def augment(img,min_val):
 
-    mydim = [6,8,8] # random rectangle cutouts
-    np.random.shuffle(mydim)
+    if img.shape[0]>1:
+        mydim = [6,8,8] # random rectangle cutouts
+        np.random.shuffle(mydim)
+    else:
+        # post resize unable to get 0 & 1s.
+        mydim = [1,16,16] 
 
     tmp = np.expand_dims(np.random.rand(*mydim),axis=-1)
     cutout = (tmp>0.9).astype(np.float) # cut out 10% of spaces.
-    cutout = resize(cutout,img.shape,order=0)
-    
+    cutout = resize(cutout>0,img.shape,order=0,mode='edge',cval=min_val)
+
     aug_img = img.copy() # copy!!!
     aug_img[cutout==1] = min_val
 
@@ -237,7 +242,7 @@ class DataGenerator(Sequence):
         return np.array(cutout_x_arr), np.array(x_arr)
 
 if __name__ == "__main__":
-
+    logging.basicConfig( level="DEBUG" )
     
     df = pd.read_csv(sys.argv[1])
     mygen = DataGenerator(
