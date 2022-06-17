@@ -27,10 +27,11 @@ if __name__ == '__main__':
     )
     if csv_file == 'ped-ct-seg.csv':
         input_dim=(8,64,64,1)
+        latent_dim=(8,16,16,10)
     elif csv_file == 'brats19.csv':
-        input_dim=(8,64,64,4)        
-
-    latent_dim=(8,16,16,10)
+        input_dim=(8,120,120,4)
+        latent_dim=(8,30,30,10)
+    
     mystrides=(1,2,2)
 
     df = pd.read_csv(csv_file)

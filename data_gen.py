@@ -196,9 +196,18 @@ class DataGenerator(Sequence):
             i0,i1,i2,_ = img.shape
 
             # starting coordinate
-            s0 = random.choice(list(range(i0-o0))) 
-            s1 = random.choice(list(range(i1-o1)))
-            s2 = random.choice(list(range(i2-o2)))
+            if i0-o0 == 0:
+                s0 = 0
+            else:
+                s0 = random.choice(list(range(i0-o0))) 
+            if i1-o1 == 0:
+                s1 = 0
+            else:
+                s1 = random.choice(list(range(i1-o1)))
+            if i2-o2 == 0:
+                s2 = 0
+            else:
+                s2 = random.choice(list(range(i2-o2)))
 
             img = img[s0:s0+o0,s1:s1+o1,s2:s2+o2,:]
 
@@ -233,7 +242,7 @@ if __name__ == "__main__":
     df = pd.read_csv(sys.argv[1])
     mygen = DataGenerator(
         df,
-        batch_size=8,output_shape=(32,64,64,1),
+        batch_size=8,output_shape=(5,120,120,4),
         shuffle=True,augment=True,
     )
     mygen.on_epoch_end()
