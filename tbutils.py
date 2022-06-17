@@ -56,14 +56,18 @@ class ImageSummaryCallback(tf.keras.callbacks.Callback):
             merged_imgs = np.concatenate([x, cutout_x, x_hat],axis=-1)
             break
 
+        if merged_imgs.shape[-1] == 3:
+            i,j,k = 0,1,2
+        elif merged_imgs.shape[-1] == 12:
+            i,j,k = 0,4,8
         # Rescale images 0 - 1
         merged_imgs = 0.5 * merged_imgs + 0.5
         
         s = int(merged_imgs.shape[1]/2.0)
         row0 = np.concatenate([
-            merged_imgs[0,s,:,:,0],
-            merged_imgs[0,s,:,:,1],
-            merged_imgs[0,s,:,:,2],
+            merged_imgs[0,s,:,:,i],
+            merged_imgs[0,s,:,:,j],
+            merged_imgs[0,s,:,:,k],
         ],axis=1)
 
         merged_img = (255*row0).astype(np.uint8)

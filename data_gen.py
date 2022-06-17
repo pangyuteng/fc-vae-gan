@@ -61,32 +61,75 @@ def resample_img(itk_image, out_spacing=[2.0, 2.0, 2.0], is_label=False):
 
     return resample.Execute(itk_image)
 
-def read_image(row,spacing=(2.0,2.0,2.0)): # responsible for reading, resampling, scaling intensity to (-1,1)
+def read_image(row): # responsible for reading, resampling, scaling intensity to (-1,1)
     
     file_path = row.file_path
-    assert(row.dataset == 'ped-ct-seg')
+    if row.dataset == 'ped-ct-seg':
+        
+        spacing=(2.0,2.0,2.0)
 
-    reader= sitk.ImageFileReader()
-    reader.SetFileName(file_path)
-    img_obj = reader.Execute()   
-    img_obj = resample_img(img_obj, out_spacing=spacing, is_label=False)
+        reader= sitk.ImageFileReader()
+        reader.SetFileName(file_path)
+        img_obj = reader.Execute()   
+        img_obj = resample_img(img_obj, out_spacing=spacing, is_label=False)
 
-    spacing = img_obj.GetSpacing()
-    origin = img_obj.GetOrigin()
-    size = img_obj.GetSize()
-    direction = img_obj.GetDirection()
+        spacing = img_obj.GetSpacing()
+        origin = img_obj.GetOrigin()
+        size = img_obj.GetSize()
+        direction = img_obj.GetDirection()
 
-    img = sitk.GetArrayFromImage(img_obj)
+        img = sitk.GetArrayFromImage(img_obj)
 
-    logger.debug(f'{origin},{direction}')
-    logger.debug(f'{spacing},{size}')
-    logger.debug(f'img.shape {img.shape}')
+        logger.debug(f'{origin},{direction}')
+        logger.debug(f'{spacing},{size}')
+        logger.debug(f'img.shape {img.shape}')
 
-    MIN_VAL,MAX_VAL = -1000,1000
-    img = img.astype(np.float16)
-    img = ((img-MIN_VAL)/(MAX_VAL-MIN_VAL))
-    img = (img-0.5)*2
-    img = img.clip(-1,1)
+        MIN_VAL,MAX_VAL = -1000,1000
+        img = img.astype(np.float16)
+        img = ((img-MIN_VAL)/(MAX_VAL-MIN_VAL))
+        img = (img-0.5)*2
+        img = img.clip(-1,1)
+
+        img = np.expand_dims(img,axis=-1)
+
+    elif row.dataset == 'brats19':
+
+        subject_id = os.path.basename(row.file_path)
+        flair_path = os.path.join(row.file_path,f'{subject_id}_flair.nii.gz')
+        t1_path = os.path.join(row.file_path,f'{subject_id}_t1.nii.gz')
+        t1ce_path = os.path.join(row.file_path,f'{subject_id}_t1ce.nii.gz')
+        t2_path = os.path.join(row.file_path,f'{subject_id}_t2.nii.gz')
+
+        x_list = []
+        spacing=(2.0,2.0,2.0)
+        for file_path in [flair_path,t1_path,t1ce_path,t2_path]:
+
+            reader= sitk.ImageFileReader()
+            reader.SetFileName(file_path)
+            img_obj = reader.Execute()   
+            img_obj = resample_img(img_obj, out_spacing=spacing, is_label=False)
+
+            spacing = img_obj.GetSpacing()
+            origin = img_obj.GetOrigin()
+            size = img_obj.GetSize()
+            direction = img_obj.GetDirection()
+
+            x = sitk.GetArrayFromImage(img_obj)
+
+            logger.debug(f'{origin},{direction}')
+            logger.debug(f'{spacing},{size}')
+            logger.debug(f'x.shape {x.shape}')
+
+            mu = np.mean(x[x>0])
+            sd = np.std(x[x>0])
+            x = (x-mu)/(2*sd)
+            x_list.append(x)
+
+        img = np.array(x_list)
+        img = np.moveaxis(img, 0, -1)
+
+    else:
+        raise NotImplementedError()
 
     return img
 
@@ -104,7 +147,9 @@ def augment(img,min_val):
 
     mydim = [6,8,8] # random rectangle cutouts
     np.random.shuffle(mydim)
-    cutout = (np.random.rand(*mydim)>0.9).astype(np.float) # cut out 10% of spaces.
+
+    tmp = np.expand_dims(np.random.rand(*mydim),axis=-1)
+    cutout = (tmp>0.9).astype(np.float) # cut out 10% of spaces.
     cutout = resize(cutout,img.shape,order=0)
     
     aug_img = img.copy() # copy!!!
@@ -136,33 +181,30 @@ class DataGenerator(Sequence):
         img = read_image(row)
         if self.output_shape:            
             # orignal image shape
-            i0,i1,i2 = img.shape
+            i0,i1,i2,_ = img.shape
 
             # target image shape
             o0,o1,o2,_ = self.output_shape
 
             # we pad some values 
-            diff = np.array([i0-o0,i1-o1,i2-o2])
+            diff = np.array([i0-o0,i1-o1,i2-o2,0])
             if any(diff<0):
                 padding = [(0,0) if x>=0 else (np.abs(x),np.abs(x)) for x in diff]
                 img = np.pad(img,padding,'constant',constant_values=(self.min_val,self.min_val))
             
-            i0,i1,i2 = img.shape
+            i0,i1,i2,_ = img.shape
 
             # starting coordinate
             s0 = random.choice(list(range(i0-o0))) 
             s1 = random.choice(list(range(i1-o1)))
             s2 = random.choice(list(range(i2-o2)))
 
-            img = img[s0:s0+o0,s1:s1+o1,s2:s2+o2]
+            img = img[s0:s0+o0,s1:s1+o1,s2:s2+o2,:]
 
         if self.augment and np.random.rand()>0.5:
             aug_img = augment(img,self.min_val)
         else:
             aug_img = img.copy()
-
-        img = np.expand_dims(img,axis=-1)
-        aug_img = np.expand_dims(aug_img,axis=-1)
         
         logger.debug(f'{img.shape},{aug_img.shape}')
 
@@ -190,7 +232,7 @@ if __name__ == "__main__":
     df = pd.read_csv(sys.argv[1])
     mygen = DataGenerator(
         df,
-        batch_size=8,output_shape=(32,128,128,1),
+        batch_size=8,output_shape=(32,64,64,1),
         shuffle=True,augment=True,
     )
     mygen.on_epoch_end()

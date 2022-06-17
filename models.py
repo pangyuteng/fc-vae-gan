@@ -83,7 +83,7 @@ def prepare_models(
 
             x = res_up(num,x)
 
-        decoder_outputs = layers.Conv3D(1, mykernel, activation="tanh", padding="same")(x)
+        decoder_outputs = layers.Conv3D(input_dim[-1], mykernel, activation="tanh", padding="same")(x)
         decoder = keras.Model(decoder_inputs, decoder_outputs, name="decoder")
         decoder.summary()
 

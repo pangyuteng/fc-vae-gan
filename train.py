@@ -24,8 +24,12 @@ if __name__ == '__main__':
         initial_learning_rate=1e-4,
         decay_steps=1000,
         decay_rate=0.96
-    )        
-    input_dim=(8,64,64,1)
+    )
+    if csv_file == 'ped-ct-seg.csv':
+        input_dim=(8,64,64,1)
+    elif csv_file == 'brats19.csv':
+        input_dim=(8,64,64,4)        
+
     latent_dim=(8,16,16,10)
     mystrides=(1,2,2)
 
