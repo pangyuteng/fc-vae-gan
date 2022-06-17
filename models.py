@@ -124,16 +124,17 @@ def prepare_models(
 #
 class VAEGAN(keras.Model):
     def __init__(self, 
-        mystrides=(1,2,2),
         input_dim=(8,64,64,1),latent_dim=(8,16,16,10),
         num_list=[64,64],dis_num_list=[16,32,64],
+        mykernel=5,mystrides=(1,2,2),
         beta_init=0, **kwargs):
         super(VAEGAN, self).__init__(**kwargs)
 
         self.encoder, self.decoder, self.discr, \
             self.input_dim, self.latent_dim = prepare_models(
-                input_dim=input_dim,latent_dim=latent_dim,mystrides=mystrides,
+                input_dim=input_dim,latent_dim=latent_dim,
                 num_list=num_list,dis_num_list=dis_num_list,
+                mystrides=mystrides,mykernel=mykernel,                
             )
 
         self.beta = K.variable(beta_init,name='kl_beta')
