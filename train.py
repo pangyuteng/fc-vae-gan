@@ -33,12 +33,12 @@ if __name__ == '__main__':
         mystrides=(1,2,2)
         mykernel=5
     elif csv_file == 'brats19.csv':
-        input_dim=(5,60,60,4)
-        latent_dim=(5,15,15,2)
+        input_dim=(1,240,240,4)
+        latent_dim=(1,60,60,2)
         num_list=[16,16]
         dis_num_list=[16,32,64]
         mystrides=(1,2,2)
-        mykernel=5
+        mykernel=(1,7,7)
 
     df = pd.read_csv(csv_file)
     mygen = DataGenerator(df,output_shape=input_dim,shuffle=True,augment=True,batch_size=batch_size)

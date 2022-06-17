@@ -48,9 +48,9 @@ def prepare_models(
         for l,num in enumerate(num_list):
             if l == 0:
                 x = encoder_inputs 
-            if l == 1:
-                x = Attention2D(num_list[l-1])(x)
             x = res_down(num,x)
+            if l == 1:
+                x = Attention2D(num)(x)
 
         z_mean = layers.Conv3D(lw, 1, activation="linear")(x)
         z_log_var = layers.Conv3D(lw, 1, activation="linear")(x)
