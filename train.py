@@ -28,17 +28,25 @@ if __name__ == '__main__':
     if csv_file == 'ped-ct-seg.csv':
         input_dim=(8,64,64,1)
         latent_dim=(8,16,16,10)
+        mystrides=(1,2,2)
+        num_list=[64,64]
+        dis_num_list=[16,32,64]
     elif csv_file == 'brats19.csv':
-        input_dim=(8,120,120,4)
-        latent_dim=(8,30,30,10)
-    
-    mystrides=(1,2,2)
+        input_dim=(5,60,60,4)
+        latent_dim=(5,15,15,10)
+        mystrides=(1,2,2)
+        num_list=[16,16]
+        dis_num_list=[16,32,64]
+        
 
     df = pd.read_csv(csv_file)
     mygen = DataGenerator(df,output_shape=input_dim,shuffle=True,augment=True,batch_size=batch_size)
     valgen = DataGenerator(df,output_shape=input_dim,shuffle=True,augment=True,batch_size=1)
     
-    mymodel = VAEGAN(input_dim=input_dim,latent_dim=latent_dim,mystrides=mystrides)
+    mymodel = VAEGAN(
+        input_dim=input_dim,latent_dim=latent_dim,mystrides=mystrides,
+        num_list=num_list,dis_num_list=dis_num_list,
+    )
     mymodel.compile(optimizer=keras.optimizers.Adam(lr_schedule),run_eagerly=True)
     
     # logging
