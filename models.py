@@ -6,6 +6,8 @@ from tensorflow import keras
 from tensorflow.keras import layers
 import tensorflow.keras.backend as K
 
+from attention import Attention2D
+
 def prepare_models(
     input_dim=(8,64,64,1),latent_dim=(8,16,16,10),
     mykernel=5,mystrides=(1,2,2),
@@ -46,7 +48,8 @@ def prepare_models(
         for l,num in enumerate(num_list):
             if l == 0:
                 x = encoder_inputs 
-            
+            if l == 1:
+                x = Attention2D(num_list[l-1])(x)
             x = res_down(num,x)
 
         z_mean = layers.Conv3D(lw, 1, activation="linear")(x)
