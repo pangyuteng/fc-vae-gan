@@ -176,6 +176,8 @@ def main(myfolder):
     # dimention reduction.
     # use tsne to visualize multi-d latent variable in 2d
     # ensure no posterior collapse
+    # https://yixinwang.github.io/papers/collapse-id-slides-public.pdf
+    # 
 
     original_shape = latent.shape
     num = np.prod(mask.shape)

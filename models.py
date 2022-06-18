@@ -55,11 +55,7 @@ def prepare_models(
                 k = 16
                 akernel = (1,3,3)
                 a = layers.Conv3D(k, kernel_size=akernel, strides=(1,2,2), padding='same')(x)
-                a = layers.Conv3D(k, kernel_size=akernel, strides=(1,2,2), padding='same')(a)
-                a = layers.Conv3D(k, kernel_size=akernel, strides=(1,2,2), padding='same')(a)
-                a = SelfAttention(k)(a) # 1, 30, 30, 16
-                a = layers.Conv3DTranspose(k, kernel_size=akernel, strides=(1,2,2), padding='same')(a)
-                a = layers.Conv3DTranspose(k, kernel_size=akernel, strides=(1,2,2), padding='same')(a)
+                a, gamma = SelfAttention(k)(a) # 1, 30, 30, 16
                 a = layers.Conv3DTranspose(k, kernel_size=akernel, strides=(1,2,2), padding='same')(a)
                 x = layers.concatenate([x,a],axis=-1)
 
@@ -126,7 +122,7 @@ def prepare_models(
         discr = keras.Model(discr_inputs,discr_output, name="discr")
         discr.summary()
 
-    return encoder, decoder, discr, input_dim, latent_dim
+    return encoder, decoder, discr, input_dim, latent_dim, gamma
 
 # `tf.name_scope` doesn't work with layers.* yet, thus have `name=` all over. TODO: remove `name=` once tf.name_scope works.
 #
@@ -143,7 +139,7 @@ class VAEGAN(keras.Model):
         super(VAEGAN, self).__init__(**kwargs)
 
         self.encoder, self.decoder, self.discr, \
-            self.input_dim, self.latent_dim = prepare_models(
+            self.input_dim, self.latent_dim, self.gamma = prepare_models(
                 input_dim=input_dim,latent_dim=latent_dim,
                 num_list=num_list,dis_num_list=dis_num_list,
                 mystrides=mystrides,mykernel=mykernel,                

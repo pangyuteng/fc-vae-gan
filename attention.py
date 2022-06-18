@@ -91,7 +91,7 @@ class SelfAttention(keras.layers.Layer):
 
         y = self.gamma * o + inputs
 
-        return y
+        return y, self.gamma
 
 if __name__ == "__main__":
     input_size = (1,32,32,16)    

@@ -20,7 +20,7 @@ import tensorflow.keras.backend as K
 
 class Warmup(keras.callbacks.Callback):
     # 1 / (e^-x +1)
-    scale = 1 # use to determine max value.
+    scale = 10 # use to determine max value.
     slope = 0.5 # slope, higher means steeper.
     shift = 10 # shift so that all values > 0.
     def on_epoch_begin(self, epoch, logs=None):
@@ -132,6 +132,7 @@ class MetricSummaryCallback(tf.keras.callbacks.Callback):
             reconstruction_loss = float(np.around(self.model.reconstruction_loss.numpy(),5)),
             kl_loss = float(np.around(self.model.kl_loss.numpy(),5)),
             kl_beta = float(np.around(self.model.beta.numpy(),5)),
+            gamma = float(np.around(self.model.gamma.numpy(),5)),
         )
 
         with self.file_writer.as_default():
