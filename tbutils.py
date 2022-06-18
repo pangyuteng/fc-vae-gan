@@ -132,7 +132,7 @@ class MetricSummaryCallback(tf.keras.callbacks.Callback):
             reconstruction_loss = float(np.around(self.model.reconstruction_loss.numpy(),5)),
             kl_loss = float(np.around(self.model.kl_loss.numpy(),5)),
             kl_beta = float(np.around(self.model.beta.numpy(),5)),
-            gamma = float(np.around(self.model.gamma.numpy(),5)),
+            gamma = float(np.around(self.model.att.gamma.numpy()[0],5)),
         )
 
         with self.file_writer.as_default():

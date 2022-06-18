@@ -45,7 +45,6 @@ from tensorflow.keras import layers
 import tensorflow_addons as tfa
 import numpy as np
 
-
 class SelfAttention(keras.layers.Layer):
     def __init__(self,channel,trainable=True,
         convclass=layers.Conv3D,**kwargs):
@@ -91,7 +90,7 @@ class SelfAttention(keras.layers.Layer):
 
         y = self.gamma * o + inputs
 
-        return y, self.gamma
+        return y
 
 if __name__ == "__main__":
     input_size = (1,32,32,16)    
