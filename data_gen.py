@@ -135,24 +135,40 @@ def read_image(row): # responsible for reading, resampling, scaling intensity to
 
     return img
 
-
-#A.GridDistortion(p=0.5, num_steps=5),
-A.RandomBrightnessContrast(),
+MIN_VAL = -1
 aug_pipeline = A.Compose([
-    A.ShiftScaleRotate(),
+    A.ShiftScaleRotate(value=MIN_VAL),
 ])
 cutout_aug_pipeline = A.Compose([
-    A.Cutout(p=0.5, num_holes=8, max_h_size=32, max_w_size=32, fill_value=-1),
+    A.Cutout(p=0.5, num_holes=8, 
+        max_h_size=32, max_w_size=32, fill_value=MIN_VAL),
 ])
 
-def augment(img,min_val):
+def augment_2d(img,min_val):
+    
+    img = img.squeeze()
 
-    if img.shape[0]>1:
-        mydim = [6,8,8] # random rectangle cutouts
-        np.random.shuffle(mydim)
-    else:
-        # post resize unable to get 0 & 1s.
-        mydim = [1,16,16] 
+    assert(min_val==MIN_VAL)
+
+    augmented = aug_pipeline(
+        image=img,
+    )
+    img = augmented['image']
+
+    cut_augmented = cutout_aug_pipeline(
+        image=img,
+    )
+    aug_img = cut_augmented['image']
+
+    img = np.expand_dims(img,axis=0)
+    aug_img = np.expand_dims(aug_img,axis=0)
+
+    return img,aug_img
+
+def augment_3d(img,min_val):
+    
+    mydim = [6,8,8] # random rectangle cutouts
+    np.random.shuffle(mydim)
 
     tmp = np.expand_dims(np.random.rand(*mydim),axis=-1)
     cutout = (tmp>0.9).astype(np.float) # cut out 10% of spaces.
@@ -161,7 +177,14 @@ def augment(img,min_val):
     aug_img = img.copy() # copy!!!
     aug_img[cutout==1] = min_val
 
-    return aug_img
+    return img,aug_img
+
+def augment(img,min_val):
+
+    if img.shape[0]>1: # leverage albumentation if 1st dim == 1
+        return augment_3d(img,min_val)
+    else:
+        return augment_2d(img,min_val)
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -217,7 +240,7 @@ class DataGenerator(Sequence):
             img = img[s0:s0+o0,s1:s1+o1,s2:s2+o2,:]
 
         if self.augment and np.random.rand()>0.5:
-            aug_img = augment(img,self.min_val)
+            img, aug_img = augment(img,self.min_val)
         else:
             aug_img = img.copy()
         
