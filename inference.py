@@ -24,7 +24,7 @@ def read_image(myfolder):
     x_list = []
     spacing=(1,1,1)
     t1, seg = None, None
-    for file_path in [flair_path,t1_path,t1ce_path,t2_path,seg_path]:
+    for file_path in [flair_path,t1_path,t2_path,seg_path]:
 
         reader= sitk.ImageFileReader()
         reader.SetFileName(file_path)
@@ -43,7 +43,7 @@ def read_image(myfolder):
         if file_path == seg_path:
             seg = sitk.GetArrayFromImage(img_obj).copy()
 
-        if file_path in [flair_path,t1_path,t1ce_path,t2_path]:
+        if file_path in [flair_path,t1_path,t2_path]:
             mu = np.mean(x[x>0])
             sd = np.std(x[x>0])
             x = (x-mu)/(3*sd)
@@ -58,11 +58,11 @@ def read_image(myfolder):
 def main(myfolder):
     
     batch_size = 4
-    input_dim=(1,240,240,4)
-    latent_dim=(1,60,60,2)
+    input_dim=(1,240,240,3)
+    latent_dim=(1,240,240,10)
     num_list=[16,16]
     dis_num_list=[16,32,64]
-    mystrides=(1,2,2)
+    mystrides=(1,1,1)
     mykernel=(1,7,7)
     
     mymodel = VAEGAN(
@@ -71,15 +71,14 @@ def main(myfolder):
         mystrides=mystrides,mykernel=mykernel,
     )
     mymodel.compile(optimizer=keras.optimizers.Adam(0.01),run_eagerly=True)
-    mymodel.encoder.load_weights('saved_modelsL2/enc.h5')
-    mymodel.decoder.load_weights('saved_modelsL2/dec.h5')
-    mymodel.discr.load_weights('saved_modelsL2/discr.h5')
-    
+    mymodel.encoder.load_weights('saved_modelsL10/enc.h5')
+    mymodel.decoder.load_weights('saved_modelsL10/dec.h5')
+    mymodel.discr.load_weights('saved_modelsL10/discr.h5')    
 
     x, t1, seg = read_image(myfolder)
     x = np.expand_dims(x,axis=1)
 
-    print(x.shape)    
+    print(x.shape)
     z_mean, z_log_var, latent = mymodel.encoder.predict(x,batch_size=batch_size)
     print(latent.shape)
     x_hat = mymodel.decoder.predict(latent,batch_size=batch_size)
@@ -96,14 +95,35 @@ def main(myfolder):
 
     print(resized_latent.shape)
     print(mask.shape)
-    for x in [-1,0,1,2,3,4]:
-        for l in range(target_shape[-1]):            
+    mylist = []
+    for l in range(target_shape[-1]):
+        for x in [-1,0,1,2,3,4]:
             tmp = resized_latent[:,:,:,l].squeeze()
             vals = tmp[mask==x]
             mu = np.mean(vals)
             sd = np.std(vals)
-            print(f'latent ind {l}, class {x} mean(sd) {mu}({sd}) n {len(vals)}')
+            n = len(vals)
+            prct = np.percentile(vals,[5,95])
+            print(f'latent ind {l}, kind {x} mean(sd) {mu:1.2f}({sd:1.2f}) {prct} n {n}')
+            mydict = dict(
+                latent_dim=l,
+                kind=x,
+                val_mean=mu,
+                val_sd=sd,
+                val_05prct=prct[0],
+                val_95prct=prct[1],
+                val_n=n,
+            )
+            mylist.append(mydict)
 
+    pd.DataFrame(mylist).to_csv("latent.csv",index=False)
+
+    #
+    # TODO: 
+    # + segment CSF,WM,GM
+    # + dimension reduction, plot classification as color overlay.
+    #
+    
 if __name__ == "__main__":
 
     myfolder = sys.argv[1]
