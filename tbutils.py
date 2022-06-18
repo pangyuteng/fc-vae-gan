@@ -20,8 +20,8 @@ import tensorflow.keras.backend as K
 
 class Warmup(keras.callbacks.Callback):
     # 1 / (e^-x +1)
-    scale = 10 # use to determine max value.
-    slope = 0.5 # slope, higher means steeper.
+    scale = 1 # use to determine max value.
+    slope = 0.1 # slope, higher means steeper.
     shift = 10 # shift so that all values > 0.
     def on_epoch_begin(self, epoch, logs=None):
         K.set_value(

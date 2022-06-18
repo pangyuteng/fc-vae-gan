@@ -178,6 +178,7 @@ def main(myfolder):
     # dimention reduction.
     # use tsne to visualize multi-d latent variable in 2d
     # ensure no posterior collapse
+    # https://www.youtube.com/watch?v=oHtqlRIsXcQ
     # https://yixinwang.github.io/papers/collapse-id-slides-public.pdf
     # 
 
