@@ -69,11 +69,13 @@ def main(myfolder):
     
         batch_size = 4
         input_dim=(1,240,240,3)
-        latent_dim=(1,240,240,10)
-        num_list=[16,16]
+        input_dim=(1,240,240,3)
+        latent_dim=(1,60,60,10)
+        num_list=[16,32]
         dis_num_list=[16,32,64]
-        mystrides=(1,1,1)
+        mystrides=(1,2,2)
         mykernel=(1,7,7)
+
         
         mymodel = VAEGAN(
             input_dim=input_dim,latent_dim=latent_dim,
