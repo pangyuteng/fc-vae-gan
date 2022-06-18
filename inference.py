@@ -11,6 +11,11 @@ from skimage.transform import resize
 from data_gen import resample_img
 from models import VAEGAN
 
+import matplotlib.pyplot as plt
+from dipy.data import fetch_tissue_data, read_tissue_data
+from dipy.segment.tissue import TissueClassifierHMRF
+from openTSNE import TSNE
+
 def read_image(myfolder):
 
     subject_id = os.path.basename(myfolder)
@@ -56,74 +61,146 @@ def read_image(myfolder):
     return img, t1, seg
 
 def main(myfolder):
-    
-    batch_size = 4
-    input_dim=(1,240,240,3)
-    latent_dim=(1,240,240,10)
-    num_list=[16,16]
-    dis_num_list=[16,32,64]
-    mystrides=(1,1,1)
-    mykernel=(1,7,7)
-    
-    mymodel = VAEGAN(
-        input_dim=input_dim,latent_dim=latent_dim,
-        num_list=num_list,dis_num_list=dis_num_list,
-        mystrides=mystrides,mykernel=mykernel,
-    )
-    mymodel.compile(optimizer=keras.optimizers.Adam(0.01),run_eagerly=True)
-    mymodel.encoder.load_weights('saved_modelsL10/enc.h5')
-    mymodel.decoder.load_weights('saved_modelsL10/dec.h5')
-    mymodel.discr.load_weights('saved_modelsL10/discr.h5')    
 
-    x, t1, seg = read_image(myfolder)
+    x, t1, tumor = read_image(myfolder)
     x = np.expand_dims(x,axis=1)
 
-    print(x.shape)
-    z_mean, z_log_var, latent = mymodel.encoder.predict(x,batch_size=batch_size)
-    print(latent.shape)
-    x_hat = mymodel.decoder.predict(latent,batch_size=batch_size)
-    print(x_hat.shape)
+    if not os.path.exists('latent.npy'):
     
-    bkgd=(t1==0).astype(np.int16)
-    mask = seg.astype(np.int16)
-    mask[bkgd==1]=-1
+        batch_size = 4
+        input_dim=(1,240,240,3)
+        latent_dim=(1,240,240,10)
+        num_list=[16,16]
+        dis_num_list=[16,32,64]
+        mystrides=(1,1,1)
+        mykernel=(1,7,7)
+        
+        mymodel = VAEGAN(
+            input_dim=input_dim,latent_dim=latent_dim,
+            num_list=num_list,dis_num_list=dis_num_list,
+            mystrides=mystrides,mykernel=mykernel,
+        )
+        mymodel.compile(optimizer=keras.optimizers.Adam(0.01),run_eagerly=True)
+        mymodel.encoder.load_weights('saved_modelsL10/enc.h5')
+        mymodel.decoder.load_weights('saved_modelsL10/dec.h5')
+        mymodel.discr.load_weights('saved_modelsL10/discr.h5')    
+
+        print(x.shape)
+        z_mean, z_log_var, latent = mymodel.encoder.predict(x,batch_size=batch_size)
+        print(latent.shape)
+        x_hat = mymodel.decoder.predict(latent,batch_size=batch_size)
+        print(x_hat.shape)
+        np.save('latent.npy',latent)
+    
+    latent = np.load('latent.npy')
+    latent = latent.squeeze()
+
+    if not os.path.exists('seg.npy'):
+        # 
+        # https://dipy.org/documentation/1.0.0./examples_built/tissue_classification
+        #
+        # segment CSF,WM,GM , values 1,2,3
+        #
+        
+        nclass = 3
+        beta = 0.1
+        hmrf = TissueClassifierHMRF()
+        initial_segmentation, final_segmentation, PVE = hmrf.classify(t1, nclass, beta)
+        if False:
+            fig = plt.figure()
+            a = fig.add_subplot(1, 2, 1)
+            img_ax = np.rot90(final_segmentation[..., 89])
+            imgplot = plt.imshow(img_ax)
+            a.axis('off')
+            a.set_title('Axial')
+            a = fig.add_subplot(1, 2, 2)
+            img_cor = np.rot90(final_segmentation[:, 128, :])
+            imgplot = plt.imshow(img_cor)
+            a.axis('off')
+            a.set_title('Coronal')
+            plt.savefig('final_seg.png', bbox_inches='tight', pad_inches=0)
+        np.save('seg.npy',final_segmentation)
+    
+    seg = np.load('seg.npy')
+    
+    mask = np.zeros_like(t1)
+    for x in [1,2,3]:
+        mask[seg==x]=x
+
+    # `seg` 0,1,2,3,4 - 4 classes of tumors
+    # edema,
+    # non-enhancing (solid) core
+    # necrotic (or fluid-filled) core        
+    # non-enhancing core
+    offset= 3
+    for x in [1,2,3,4]:
+        mask[tumor==x]=offset+x
 
     target_shape = list(latent.shape)
-    target_shape[2]=x.shape[2]
-    target_shape[3]=x.shape[3]
-    resized_latent = resize(latent,target_shape,order=0,mode='edge',cval=-1).squeeze()
+    target_shape[1]=mask.shape[1]
+    target_shape[2]=mask.shape[2]
+    resized_latent = resize(latent,target_shape,order=0,mode='edge',cval=-1)
 
     print(resized_latent.shape)
     print(mask.shape)
-    mylist = []
-    for l in range(target_shape[-1]):
-        for x in [-1,0,1,2,3,4]:
-            tmp = resized_latent[:,:,:,l].squeeze()
-            vals = tmp[mask==x]
-            mu = np.mean(vals)
-            sd = np.std(vals)
-            n = len(vals)
-            prct = np.percentile(vals,[5,95])
-            print(f'latent ind {l}, kind {x} mean(sd) {mu:1.2f}({sd:1.2f}) {prct} n {n}')
-            mydict = dict(
-                latent_dim=l,
-                kind=x,
-                val_mean=mu,
-                val_sd=sd,
-                val_05prct=prct[0],
-                val_95prct=prct[1],
-                val_n=n,
-            )
-            mylist.append(mydict)
 
-    pd.DataFrame(mylist).to_csv("latent.csv",index=False)
+    if False:
+        mylist = []
+        for l in range(target_shape[-1]):
+            for x in [0,1,2,3,4,5,6,7]:
+                tmp = resized_latent[:,:,:,l].squeeze()
+                vals = tmp[mask==x]
+                mu = np.mean(vals)
+                sd = np.std(vals)
+                n = len(vals)
+                prct = np.percentile(vals,[5,95])
+                print(f'latent ind {l}, kind {x} mean(sd) {mu:1.2f}({sd:1.2f}) {prct} n {n}')
+                mydict = dict(
+                    latent_dim=l,
+                    kind=x,
+                    val_mean=mu,
+                    val_sd=sd,
+                    val_05prct=prct[0],
+                    val_95prct=prct[1],
+                    val_n=n,
+                )
+                mylist.append(mydict)
+
+        pd.DataFrame(mylist).to_csv("latent.csv",index=False)
 
     #
-    # TODO: 
-    # + segment CSF,WM,GM
-    # + dimension reduction, plot classification as color overlay.
+    # https://opentsne.readthedocs.io/en/latest
     #
+    # dimention reduction.
+    # use tsne to visualize multi-d latent variable in 2d.
+    #
+
+    original_shape = resized_latent.shape
+    num = np.prod(mask.shape)
+    latent_dim = 10
+    X = resized_latent.reshape((num,latent_dim))
+    labels = mask.ravel()
+
+    idx = np.arange(len(labels))
+    np.random.shuffle(idx)
     
+    idx = idx[:8000]
+    X_subsampled = X[idx,:]
+    labels_subsampled = labels[idx]
+    
+    print('tsne fit')
+    X_embedded = TSNE().fit(X_subsampled)
+
+    print(X_embedded.shape)
+
+    plt.scatter(X_embedded[:, 0], X_embedded[:, 1], c=labels_subsampled,alpha=0.5)
+    plt.colorbar()
+    plt.xlabel("z[0]")
+    plt.ylabel("z[1]")
+    plt.grid(True)
+    plt.savefig('tsne.png', bbox_inches='tight', pad_inches=0)
+    
+
 if __name__ == "__main__":
 
     myfolder = sys.argv[1]
