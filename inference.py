@@ -135,20 +135,22 @@ def main(myfolder):
     offset= 3
     for x in [1,2,3,4]:
         mask[tumor==x]=offset+x
+    if latent.shape[1] != mask.shape[1]:
+        print(latent.shape)
+        print(mask.shape)
+        target_shape = list(latent.shape)
+        target_shape[1]=mask.shape[1]
+        target_shape[2]=mask.shape[2]
+        latent = resize(latent,target_shape,order=0,mode='edge',cval=-1)
 
-    target_shape = list(latent.shape)
-    target_shape[1]=mask.shape[1]
-    target_shape[2]=mask.shape[2]
-    resized_latent = resize(latent,target_shape,order=0,mode='edge',cval=-1)
-
-    print(resized_latent.shape)
+    print(latent.shape)
     print(mask.shape)
 
     if False:
         mylist = []
         for l in range(target_shape[-1]):
             for x in [0,1,2,3,4,5,6,7]:
-                tmp = resized_latent[:,:,:,l].squeeze()
+                tmp = latent[:,:,:,l].squeeze()
                 vals = tmp[mask==x]
                 mu = np.mean(vals)
                 sd = np.std(vals)
@@ -172,24 +174,31 @@ def main(myfolder):
     # https://opentsne.readthedocs.io/en/latest
     #
     # dimention reduction.
-    # use tsne to visualize multi-d latent variable in 2d.
-    #
+    # use tsne to visualize multi-d latent variable in 2d
+    # ensure no posterior collapse
 
-    original_shape = resized_latent.shape
+    original_shape = latent.shape
     num = np.prod(mask.shape)
     latent_dim = 10
-    X = resized_latent.reshape((num,latent_dim))
+    X = latent.reshape((num,latent_dim))
     labels = mask.ravel()
 
     idx = np.arange(len(labels))
     np.random.shuffle(idx)
     
-    idx = idx[:8000]
+    idx = idx[:10000]
+    
     X_subsampled = X[idx,:]
     labels_subsampled = labels[idx]
     
     print('tsne fit')
-    X_embedded = TSNE().fit(X_subsampled)
+    X_embedded = TSNE(
+        perplexity=30,
+        metric="euclidean",
+        n_jobs=8,
+        random_state=42,
+        verbose=True,
+    ).fit(X_subsampled)
 
     print(X_embedded.shape)
 
