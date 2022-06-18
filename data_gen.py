@@ -103,7 +103,7 @@ def read_image(row): # responsible for reading, resampling, scaling intensity to
 
         x_list = []
         spacing=(1,1,1)
-        for file_path in [flair_path,t1_path,t1ce_path,t2_path]:
+        for file_path in [flair_path,t1_path,t2_path]:
 
             reader= sitk.ImageFileReader()
             reader.SetFileName(file_path)

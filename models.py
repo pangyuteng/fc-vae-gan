@@ -6,7 +6,7 @@ from tensorflow import keras
 from tensorflow.keras import layers
 import tensorflow.keras.backend as K
 
-from attention import Attention2D
+from attention import SelfAttention
 
 def prepare_models(
     input_dim=(8,64,64,1),latent_dim=(8,16,16,10),
@@ -49,8 +49,19 @@ def prepare_models(
             if l == 0:
                 x = encoder_inputs 
             x = res_down(num,x)
+
+            # jammed in attention.
             if l == 1:
-                x = Attention2D(num)(x)
+                k = 16
+                akernel = (1,3,3)
+                a = layers.Conv3D(k, kernel_size=akernel, strides=(1,2,2), padding='same')(x)
+                a = layers.Conv3D(k, kernel_size=akernel, strides=(1,2,2), padding='same')(a)
+                a = layers.Conv3D(k, kernel_size=akernel, strides=(1,2,2), padding='same')(a)
+                a = SelfAttention(k)(a) # 1, 30, 30, 16
+                a = layers.Conv3DTranspose(k, kernel_size=akernel, strides=(1,2,2), padding='same')(a)
+                a = layers.Conv3DTranspose(k, kernel_size=akernel, strides=(1,2,2), padding='same')(a)
+                a = layers.Conv3DTranspose(k, kernel_size=akernel, strides=(1,2,2), padding='same')(a)
+                x = layers.concatenate([x,a],axis=-1)
 
         z_mean = layers.Conv3D(lw, 1, activation="linear")(x)
         z_log_var = layers.Conv3D(lw, 1, activation="linear")(x)
@@ -90,14 +101,15 @@ def prepare_models(
     # discriminator  -------------------
     DISCR = 'DISCR'
     with tf.name_scope(DISCR) as scope:
-
-        def res_down(filters,x):
-            r = layers.Conv3D(filters, kernel_size=1, strides=mystrides, padding='same')(x)
-            d = layers.Conv3D(filters, kernel_size=mykernel, strides=1, padding='same')(x)
+        discr_strides = (1,2,2)
+        discr_mykernel = (1,3,3)
+        def discr_res_down(filters,x):
+            r = layers.Conv3D(filters, kernel_size=1, strides=discr_strides, padding='same')(x)
+            d = layers.Conv3D(filters, kernel_size=discr_mykernel, strides=1, padding='same')(x)
             d = layers.BatchNormalization()(d)
             d = layers.LeakyReLU(alpha=0.2)(d)
             d = layers.concatenate([x,d],axis=-1)
-            d = layers.Conv3D(filters, kernel_size=mykernel, strides=mystrides, padding='same')(d)
+            d = layers.Conv3D(filters, kernel_size=discr_mykernel, strides=discr_strides, padding='same')(d)
             d = layers.BatchNormalization()(d)
             d = layers.LeakyReLU(alpha=0.2)(d)
             d = layers.add([d,r])
@@ -108,7 +120,7 @@ def prepare_models(
             if l == 0:
                 x = discr_inputs
             
-            x = res_down(num,x)
+            x = discr_res_down(num,x)
 
         discr_output = layers.Conv3D(1, mykernel, activation="sigmoid", padding="same")(x)
         discr = keras.Model(discr_inputs,discr_output, name="discr")
@@ -269,7 +281,12 @@ class VAEGAN(keras.Model):
         }
 
 if __name__ == "__main__":
-    model = VAEGAN()
+    model = VAEGAN(
+        input_dim=(8,64,64,1),latent_dim=(8,64,64,10),
+        mykernel=5,mystrides=(1,1,1),
+        num_list=[8,8],
+        dis_num_list=[16,32,64],
+    )
     for n,m in [
         ('encoder',model.encoder),
         ('encoder',model.decoder),
