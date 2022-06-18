@@ -187,6 +187,13 @@ def main(myfolder):
     X = latent.reshape((num,latent_dim))
     labels = mask.ravel()
 
+    print(labels.shape)
+    non_bkgd = np.where(labels!=0)[0]
+    X = X[non_bkgd,:]
+    labels = labels[non_bkgd]
+    print(labels.shape)
+    print(X.shape)
+
     idx = np.arange(len(labels))
     np.random.shuffle(idx)
     
