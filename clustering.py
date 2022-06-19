@@ -104,6 +104,7 @@ def visualize_cluster(mymodel,myfolder,workdir,batch_size=4):
             a.axis('off')
             a.set_title('Coronal')
             plt.savefig('final_seg.png', bbox_inches='tight', pad_inches=0)
+            plt.close()
         np.save(seg_file,final_segmentation)
     
     seg = np.load(seg_file)
@@ -204,6 +205,7 @@ def visualize_cluster(mymodel,myfolder,workdir,batch_size=4):
     plt.grid(True)
     tsne_file = os.path.join(workdir,'tsne.png')
     plt.savefig(tsne_file, bbox_inches='tight', pad_inches=0)
+    plt.close()
 
 
 def main(myfolder):
