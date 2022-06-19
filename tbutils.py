@@ -9,6 +9,9 @@
 
 import os
 import sys
+import tempfile
+import shutil
+import imageio
 import random
 import numpy as np
 import tensorflow as tf
@@ -17,6 +20,7 @@ import datetime
 import matplotlib.pyplot as plt
 from tensorflow import keras
 import tensorflow.keras.backend as K
+from clustering import visualize_cluster
 
 class Warmup(keras.callbacks.Callback):
     # 1 / (e^-x +1)
@@ -41,13 +45,27 @@ class ImageSummaryCallback(tf.keras.callbacks.Callback):
 
     def on_batch_end(self, batch, logs=None):
         self.on_end("batch", batch)
-    def on_epoch_end(self, epoch, logs=None):        
+    def on_epoch_end(self, epoch, logs=None):
         self.epoch = epoch
         self.on_end("epoch", epoch)
 
     def on_end(self, kind, batch, logs=None):        
         os.makedirs('images', exist_ok=True)
-        # self.data_gen.on_epoch_end()
+        
+        tsne_viz_arr = None
+        if kind in ['epoch']:
+            with tempfile.TemporaryDirectory() as workdir:
+                idx = self.data_gen.indices[0]
+                sample_folder = self.data_gen.df.at[idx,'file_path']
+                print("")
+                print(sample_folder)
+                tsne_file = os.path.join(workdir,'tsne.png')
+                visualize_cluster(self.model,sample_folder,workdir)
+                tsne_viz_arr = imageio.imread(tsne_file)
+                tsne_viz_arr = np.expand_dims(tsne_viz_arr,axis=0)
+                tgt_file = f"images/{batch:04d}_end_tsne.png"
+                shutil.copy(tsne_file,tgt_file)
+                print(tsne_viz_arr.shape,'!!!!!!!')
 
         for n,(cutout_x, x) in zip(range(1),self.data_gen):
 
@@ -89,11 +107,15 @@ class ImageSummaryCallback(tf.keras.callbacks.Callback):
         fig.savefig(fname)
         plt.close()
 
-
         with self.file_writer.as_default():
             tf.summary.image("sample", merged_img, step=self.count)
             self.file_writer.flush()
             self.count+=1
+
+        if tsne_viz_arr is not None:
+            with self.file_writer.as_default():
+                tf.summary.image("tsne", tsne_viz_arr, step=self.count)
+                self.file_writer.flush()
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 class ModelSaveCallback(tf.keras.callbacks.Callback):
