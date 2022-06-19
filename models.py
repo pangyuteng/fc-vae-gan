@@ -55,8 +55,12 @@ def prepare_models(
                 k = 16
                 akernel = (1,3,3)
                 a = layers.Conv3D(k, kernel_size=akernel, strides=(1,2,2), padding='same')(x)
+                a = layers.Conv3D(k, kernel_size=akernel, strides=(1,2,2), padding='same')(a)
+                a = layers.Conv3D(k, kernel_size=akernel, strides=(1,2,2), padding='same')(a)
                 att = SelfAttention(k)
                 a = att(a) # 1, 30, 30, 16
+                a = layers.Conv3DTranspose(k, kernel_size=akernel, strides=(1,2,2), padding='same')(a)
+                a = layers.Conv3DTranspose(k, kernel_size=akernel, strides=(1,2,2), padding='same')(a)
                 a = layers.Conv3DTranspose(k, kernel_size=akernel, strides=(1,2,2), padding='same')(a)
                 x = layers.concatenate([x,a],axis=-1)
 
