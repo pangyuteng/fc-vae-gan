@@ -13,6 +13,7 @@ from data_gen import resample_img
 
 
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 from dipy.data import fetch_tissue_data, read_tissue_data
 from dipy.segment.tissue import TissueClassifierHMRF
 from openTSNE import TSNE
@@ -197,8 +198,10 @@ def visualize_cluster(mymodel,myfolder,workdir,batch_size=4):
     ).fit(X_subsampled)
 
     print(X_embedded.shape)
-
-    plt.scatter(X_embedded[:, 0], X_embedded[:, 1], c=labels_subsampled,alpha=0.5)
+    cmap = cm.get_cmap('PiYG', 7)
+    plt.scatter(
+        X_embedded[:, 0],X_embedded[:, 1],
+        c=labels_subsampled,cmap=cmap,alpha=0.5)
     plt.colorbar()
     plt.xlabel("z[0]")
     plt.ylabel("z[1]")
@@ -230,7 +233,7 @@ def main(myfolder):
     mymodel.decoder.load_weights('saved_modelsL10/dec.h5')
     mymodel.discr.load_weights('saved_modelsL10/discr.h5')
     
-    visualize_cluster(mymodel,myfolder,workdir)
+    visualize_cluster(mymodel,myfolder,".")
 
 if __name__ == "__main__":
 
