@@ -38,7 +38,7 @@ if __name__ == '__main__':
         num_list=[16,32]
         dis_num_list=[16,32,64]
         mystrides=(1,1,1)
-        mykernel=(1,21,21)
+        mykernel=(1,15,15)
 
     df = pd.read_csv(csv_file)
     mygen = DataGenerator(df,output_shape=input_dim,shuffle=True,augment=True,batch_size=batch_size)

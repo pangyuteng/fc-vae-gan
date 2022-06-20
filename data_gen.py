@@ -239,7 +239,7 @@ class DataGenerator(Sequence):
 
             img = img[s0:s0+o0,s1:s1+o1,s2:s2+o2,:]
 
-        if self.augment and np.random.rand()>0.5:
+        if self.augment:
             img, aug_img = augment(img,self.min_val)
         else:
             aug_img = img.copy()
