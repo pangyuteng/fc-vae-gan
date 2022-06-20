@@ -139,7 +139,7 @@ def main(myfolder):
     num_list=[16,32]
     dis_num_list=[16,32,64]
     mystrides=(1,1,1)
-    mykernel=(1,21,21)
+    mykernel=(1,15,15)
     
     mymodel = VAEGAN(
         input_dim=input_dim,latent_dim=latent_dim,

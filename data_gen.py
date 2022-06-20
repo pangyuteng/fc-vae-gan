@@ -140,8 +140,8 @@ aug_pipeline = A.Compose([
     A.ShiftScaleRotate(value=MIN_VAL),
 ])
 cutout_aug_pipeline = A.Compose([
-    A.Cutout(p=0.9, num_holes=5, 
-        max_h_size=30, max_w_size=30, fill_value=MIN_VAL),
+    A.Cutout(p=0.5, num_holes=5,
+        max_h_size=28, max_w_size=28, fill_value=MIN_VAL),
 ])
 
 def augment_2d(img,min_val):

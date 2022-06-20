@@ -18,13 +18,6 @@ if __name__ == '__main__':
 
     csv_file = sys.argv[1]
 
-    epochs = 100000
-    batch_size = 4
-    lr_schedule = keras.optimizers.schedules.ExponentialDecay(
-        initial_learning_rate=1e-4,
-        decay_steps=1000,
-        decay_rate=0.96
-    )
     if csv_file == 'ped-ct-seg.csv':
         input_dim=(8,64,64,1)
         latent_dim=(8,16,16,10)
@@ -32,6 +25,7 @@ if __name__ == '__main__':
         dis_num_list=[16,32,64]
         mystrides=(1,2,2)
         mykernel=5
+        init_lr=1e-4
     elif csv_file == 'brats19.csv':
         input_dim=(1,240,240,3)
         latent_dim=(1,240,240,10)
@@ -39,6 +33,15 @@ if __name__ == '__main__':
         dis_num_list=[16,32,64]
         mystrides=(1,1,1)
         mykernel=(1,15,15)
+        init_lr=1e-5
+
+    epochs = 100000
+    batch_size = 4
+    lr_schedule = keras.optimizers.schedules.ExponentialDecay(
+        initial_learning_rate=init_lr,
+        decay_steps=1000,
+        decay_rate=0.96
+    )
 
     df = pd.read_csv(csv_file)
     mygen = DataGenerator(df,output_shape=input_dim,shuffle=True,augment=True,batch_size=batch_size)
