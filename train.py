@@ -26,6 +26,7 @@ if __name__ == '__main__':
         mystrides=(1,2,2)
         mykernel=5
         init_lr=1e-4
+        
     elif csv_file == 'brats19.csv':
         input_dim=(1,240,240,3)
         latent_dim=(1,240,240,10)
