@@ -161,6 +161,6 @@ if __name__ == "__main__":
 
 '''
 
-python clustering.py /mnt/hd2/data/brats2019/MICCAI_BraTS_2019_Data_Training/LGG/BraTS19_TCIA13_653_1
+python inference.py /mnt/hd2/data/brats2019/MICCAI_BraTS_2019_Data_Training/LGG/BraTS19_TCIA13_653_1
 
 '''

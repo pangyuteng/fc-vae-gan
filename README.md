@@ -15,8 +15,20 @@ python models.py
 # start training
 python train.py ped-ct-seg.csv
 
-# TODO: eval
-get latent variables, dim reduction with tsne, overlay organ classification.
+
+# visualize latent variables via tsne
+python clustering.py /mnt/hd2/data/brats2019/MICCAI_BraTS_2019_Data_Training/LGG/BraTS19_TCIA13_653_1
+
+# segment using knn
+python inference.py /mnt/hd2/data/brats2019/MICCAI_BraTS_2019_Data_Training/LGG/BraTS19_TCIA13_653_1
+
+# TODO: eval , compute "gan" metrics...
+
+
+notes
+
++ training is somewhat stable with kernel at 1,7,7
+
 
 
 ```

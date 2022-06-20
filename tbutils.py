@@ -58,15 +58,22 @@ class ImageSummaryCallback(tf.keras.callbacks.Callback):
             with tempfile.TemporaryDirectory() as workdir:
                 idx = self.data_gen.indices[0]
                 sample_folder = self.data_gen.df.at[idx,'file_path']
-                print("")
-                print(sample_folder)
-                tsne_file = os.path.join(workdir,'tsne.png')
-                visualize_cluster(self.model,sample_folder,workdir)
-                tsne_viz_arr = imageio.imread(tsne_file)
-                tsne_viz_arr = np.expand_dims(tsne_viz_arr,axis=0)
-                tgt_file = f"images/{batch:04d}_end_tsne.png"
-                shutil.copy(tsne_file,tgt_file)
-                print(tsne_viz_arr.shape,'!!!!!!!')
+                dataset = self.data_gen.df.at[idx,'dataset']
+                if dataset == "brats19:
+                    
+                    print("")
+                    print(sample_folder,'!!!!!!!!!!!!!!!!')
+
+                    tsne_file = os.path.join(workdir,'tsne.png')
+                    visualize_cluster(self.model,sample_folder,workdir)
+                    tsne_viz_arr = imageio.imread(tsne_file)
+                    tsne_viz_arr = np.expand_dims(tsne_viz_arr,axis=0)
+                    tgt_file = f"images/{batch:04d}_end_tsne.png"
+                    shutil.copy(tsne_file,tgt_file)
+
+                    with self.file_writer.as_default():
+                        tf.summary.image("tsne", tsne_viz_arr, step=self.count)
+                        self.file_writer.flush()
 
         for n,(cutout_x, x) in zip(range(1),self.data_gen):
 
@@ -113,10 +120,6 @@ class ImageSummaryCallback(tf.keras.callbacks.Callback):
             self.file_writer.flush()
             self.count+=1
 
-        if tsne_viz_arr is not None:
-            with self.file_writer.as_default():
-                tf.summary.image("tsne", tsne_viz_arr, step=self.count)
-                self.file_writer.flush()
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 class ModelSaveCallback(tf.keras.callbacks.Callback):
