@@ -18,7 +18,7 @@ from dipy.data import fetch_tissue_data, read_tissue_data
 from dipy.segment.tissue import TissueClassifierHMRF
 from openTSNE import TSNE
 
-from sklearn.cluster import KMeans
+import hdbscan
 
 def read_image(myfolder):
 
@@ -99,16 +99,16 @@ def segment_via_clustering(mymodel,myfolder,workdir,batch_size=4):
     idx = np.arange(X.shape[0])
     np.random.shuffle(idx)
     
-    idx = idx[:100*100*100]
+    idx = idx[:1000]
     X_subsampled = X[idx,:]
-
-    kmeans = KMeans(n_clusters=10, random_state=0).fit(X_subsampled)
-    print(np.unique(kmeans.labels_))
-
+    # random_state=0
+    clusterer = hdbscan.HDBSCAN(min_cluster_size=15, prediction_data=True).fit(X_subsampled)
+    
     X = latent.reshape((num,latent_dim))
-    pred = kmeans.predict(X)
+    pred, strengths = hdbscan.approximate_predict(clusterer, X)    
     pred+=1
-
+    print(np.unique(pred))
+    
     pred = np.reshape(pred,t1.shape)
     pred[t1==0]=0
     pred = pred.astype(np.int16)
