@@ -59,8 +59,8 @@ class ImageSummaryCallback(tf.keras.callbacks.Callback):
                 idx = self.data_gen.indices[0]
                 sample_folder = self.data_gen.df.at[idx,'file_path']
                 dataset = self.data_gen.df.at[idx,'dataset']
-                if dataset == "brats19":
-                    
+                #if dataset == "brats19":
+                if False:
                     print("")
                     print(sample_folder,'!!!!!!!!!!!!!!!!')
 

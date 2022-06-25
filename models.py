@@ -41,8 +41,8 @@ def prepare_models(
             d = layers.concatenate([x,d],axis=-1)
             d = layers.Conv3D(filters, kernel_size=mykernel, strides=mystrides, padding='same')(d)
             d = layers.BatchNormalization()(d)
-            d = layers.LeakyReLU(alpha=0.2)(d)
             d = layers.add([d,r])
+            d = layers.LeakyReLU(alpha=0.2)(d)
             return d
             
         for l,num in enumerate(num_list):
@@ -54,14 +54,14 @@ def prepare_models(
             if l == 1:
                 k = 16
                 akernel = (1,3,3)
-                a = layers.Conv3D(k, kernel_size=akernel, strides=(1,2,2), padding='same')(x)
-                a = layers.Conv3D(k, kernel_size=akernel, strides=(1,2,2), padding='same')(a)
-                a = layers.Conv3D(k, kernel_size=akernel, strides=(1,2,2), padding='same')(a)
+                a = layers.Conv3D(k, kernel_size=akernel, strides=(1,2,2), padding='same',activation='relu')(x)
+                a = layers.Conv3D(k, kernel_size=akernel, strides=(1,2,2), padding='same',activation='relu')(a)
+                a = layers.Conv3D(k, kernel_size=akernel, strides=(1,2,2), padding='same',activation='relu')(a)
                 att = SelfAttention(k)
                 a = att(a) # 1, 30, 30, 16
-                a = layers.Conv3DTranspose(k, kernel_size=akernel, strides=(1,2,2), padding='same')(a)
-                a = layers.Conv3DTranspose(k, kernel_size=akernel, strides=(1,2,2), padding='same')(a)
-                a = layers.Conv3DTranspose(k, kernel_size=akernel, strides=(1,2,2), padding='same')(a)
+                a = layers.Conv3DTranspose(k, kernel_size=akernel, strides=(1,2,2), padding='same',activation='relu')(a)
+                a = layers.Conv3DTranspose(k, kernel_size=akernel, strides=(1,2,2), padding='same',activation='relu')(a)
+                a = layers.Conv3DTranspose(k, kernel_size=akernel, strides=(1,2,2), padding='same',activation='relu')(a)
                 x = layers.concatenate([x,a],axis=-1)
 
         z_mean = layers.Conv3D(lw, 1, activation="linear")(x)
@@ -83,8 +83,8 @@ def prepare_models(
             d = layers.concatenate([x,d],axis=-1)
             d = layers.Conv3DTranspose(filters, kernel_size=mykernel, strides=mystrides, padding='same')(d)
             d = layers.BatchNormalization()(d)
-            d = layers.LeakyReLU(alpha=0.2)(d)
             d = layers.add([d,r])
+            d = layers.LeakyReLU(alpha=0.2)(d)
             return d
 
         decoder_inputs = keras.Input(shape=latent_dim)
@@ -113,7 +113,6 @@ def prepare_models(
             d = layers.Conv3D(filters, kernel_size=discr_mykernel, strides=discr_strides, padding='same')(d)
             d = layers.BatchNormalization()(d)
             d = layers.LeakyReLU(alpha=0.2)(d)
-            d = layers.add([d,r])
             return d
 
         discr_inputs = keras.Input(shape=input_dim)

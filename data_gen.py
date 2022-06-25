@@ -137,7 +137,7 @@ def read_image(row): # responsible for reading, resampling, scaling intensity to
 
 MIN_VAL = -1
 aug_pipeline = A.Compose([
-    A.ShiftScaleRotate(value=MIN_VAL),
+    A.ShiftScaleRotate(value=MIN_VAL,border_mode=0),
 ])
 
 FILL_VAL = 0
