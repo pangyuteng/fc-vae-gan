@@ -17,6 +17,9 @@ def segment(myfolder):
     tumor_path = os.path.join(myfolder,f'{subject_id}_seg.nii.gz')
 
     seg_path = os.path.join(myfolder,f'{subject_id}_sawtelle.nii.gz')
+    if os.path.exists(seg_path):
+        print('skip')
+        sys.exit(0)
 
     reader= sitk.ImageFileReader()
     reader.SetFileName(t1_path)
@@ -70,7 +73,7 @@ def segment(myfolder):
 if __name__ == "__main__":
 
     myfolder = sys.argv[1]
-    
+
     segment(myfolder)
 
 '''
