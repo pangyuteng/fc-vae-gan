@@ -44,7 +44,7 @@ def segment(myfolder):
     
     mask = np.zeros_like(t1)
     for x in [1,2,3]:
-        mask[final_segmentation==x]=x+5
+        mask[final_segmentation==x]=x+4
 
     # `seg` 0,1,2,3,4 - 4 classes of tumors
     # edema,
@@ -55,7 +55,7 @@ def segment(myfolder):
     for x in [1,2,3,4]:
         mask[tumor==x]=x
 
-    # 0 bkgd, 1-4, tumour, 5,6,7 - csf/wm/gm
+    # bkgd: 0 , tumour: 1-4, csf/wm/gm: 5-7
     mask_obj = sitk.GetImageFromArray(mask)
     mask_obj.SetSpacing(img_obj.GetSpacing())
     mask_obj.SetOrigin(img_obj.GetOrigin())
