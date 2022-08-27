@@ -34,25 +34,31 @@ if __name__ == '__main__':
         
     elif csv_file == 'brats19.csv':
         input_dim=(1,240,240,3)
-        latent_dim=(1,60,60,32)
+        latent_dim=(1,60,60,64)
         num_list=[16,32]
         dis_num_list=[16,32,64]
         mystrides=(1,2,2)
         mykernel=(1,15,15)
-        init_lr=1e-5
+        init_lr=1e-4
 
     epochs = 100000
     batch_size = 64
+    val_batch_size = 4
     lr_schedule = keras.optimizers.schedules.ExponentialDecay(
         initial_learning_rate=init_lr,
-        decay_steps=1000,
+        decay_steps=100,
         decay_rate=0.96
     )
 
     df = pd.read_csv(csv_file)
     mygen = DataGenerator(df,output_shape=input_dim,shuffle=True,augment=True,batch_size=batch_size)
-    valgen = DataGenerator(df,output_shape=input_dim,shuffle=True,augment=True,batch_size=1)
+    valgen = DataGenerator(df,output_shape=input_dim,shuffle=True,augment=True,batch_size=val_batch_size)
     
+    steps_per_epoch=len(mygen)//batch_size
+    validation_steps=len(valgen)//val_batch_size
+    print("steps_per_epoch",steps_per_epoch)
+    print("validation_steps",validation_steps)
+
     run_eagerly = True
     strategy = tf.distribute.MultiWorkerMirroredStrategy()
     print("Number of devices: {}".format(strategy.num_replicas_in_sync))
@@ -77,6 +83,9 @@ if __name__ == '__main__':
     history = mymodel.fit(
         mygen, 
         epochs=epochs, 
+        steps_per_epoch=steps_per_epoch,
+        validation_data=valgen,
+        validation_steps=validation_steps,
         workers=10,
         callbacks=callback_list,
     )

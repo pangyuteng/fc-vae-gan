@@ -94,9 +94,10 @@ def prepare_models(
             d = layers.Conv3D(filters, kernel_size=discr_mykernel, strides=1, padding='same')(x)
             d = layers.BatchNormalization()(d)
             d = layers.LeakyReLU(alpha=0.2)(d)
-            d = layers.concatenate([x,d],axis=-1)
+            #d = layers.concatenate([x,d],axis=-1)
             d = layers.Conv3D(filters, kernel_size=discr_mykernel, strides=discr_strides, padding='same')(d)
             d = layers.BatchNormalization()(d)
+            d = layers.add([d,r])
             d = layers.LeakyReLU(alpha=0.2)(d)
             return d
 
