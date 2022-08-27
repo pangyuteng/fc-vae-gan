@@ -2,7 +2,7 @@
 
 ```
 
-
+docker build -t fcvae .
 docker run -u $(id -u):$(id -g) --runtime=nvidia -it -v /mnt:/mnt -w $PWD fcvae bash
 
 
@@ -13,7 +13,10 @@ python data_gen.py
 python models.py
 
 # start training
-python train.py ped-ct-seg.csv
+python train.py brats19.csv
+
+docker run -u $(id -u):$(id -g) -p 6006:6006 -it -v /mnt:/mnt -w $PWD fcvae bash
+tensorboard --bind_all --logdir=log
 
 
 # visualize latent variables via tsne

@@ -11,6 +11,11 @@ import tensorflow.keras.backend as K
 
 from data_gen import seed_everything, DataGenerator
 seed_everything()
+
+gpus = tf.config.experimental.list_physical_devices('GPU')
+for gpu in gpus:
+    tf.config.experimental.set_memory_growth(gpu, True)
+
 from models import VAEGAN
 from tbutils import Warmup,ImageSummaryCallback, MetricSummaryCallback, ModelSaveCallback
 
@@ -29,10 +34,10 @@ if __name__ == '__main__':
         
     elif csv_file == 'brats19.csv':
         input_dim=(1,240,240,3)
-        latent_dim=(1,240,240,10)
+        latent_dim=(1,60,60,32)
         num_list=[16,32]
         dis_num_list=[16,32,64]
-        mystrides=(1,1,1)
+        mystrides=(1,2,2)
         mykernel=(1,15,15)
         init_lr=1e-5
 
@@ -48,13 +53,17 @@ if __name__ == '__main__':
     mygen = DataGenerator(df,output_shape=input_dim,shuffle=True,augment=True,batch_size=batch_size)
     valgen = DataGenerator(df,output_shape=input_dim,shuffle=True,augment=True,batch_size=1)
     
-    mymodel = VAEGAN(
-        input_dim=input_dim,latent_dim=latent_dim,
-        num_list=num_list,dis_num_list=dis_num_list,
-        mystrides=mystrides,mykernel=mykernel,
-    )
-    mymodel.compile(optimizer=keras.optimizers.Adam(lr_schedule),run_eagerly=True)
-    
+    run_eagerly = True
+    strategy = tf.distribute.MultiWorkerMirroredStrategy()
+    print("Number of devices: {}".format(strategy.num_replicas_in_sync))
+    with strategy.scope():
+        mymodel = VAEGAN(
+            input_dim=input_dim,latent_dim=latent_dim,
+            num_list=num_list,dis_num_list=dis_num_list,
+            mystrides=mystrides,mykernel=mykernel,
+        )
+        mymodel.compile(optimizer=keras.optimizers.Adam(lr_schedule),run_eagerly=run_eagerly)
+
     # logging
     log_dir = './log'
     tensorboard_cb = keras.callbacks.TensorBoard(
