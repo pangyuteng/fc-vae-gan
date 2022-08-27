@@ -43,3 +43,9 @@ https://lilianweng.github.io/posts/2018-08-12-vae
 
 https://nips.cc/media/neurips-2021/Slides/21895.pdf
 https://www.youtube.com/watch?v=7l6fttRJzeU
+
+
+
+https://arxiv.org/pdf/1804.04488.pdf
+https://www.nature.com/articles/s41598-021-84547-5
+
