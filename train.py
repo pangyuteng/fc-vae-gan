@@ -54,8 +54,8 @@ if __name__ == '__main__':
     mygen = DataGenerator(df,output_shape=input_dim,shuffle=True,augment=True,batch_size=batch_size)
     valgen = DataGenerator(df,output_shape=input_dim,shuffle=True,augment=True,batch_size=val_batch_size)
     
-    steps_per_epoch=len(mygen)//batch_size
-    validation_steps=len(valgen)//val_batch_size
+    steps_per_epoch=200#len(mygen)//batch_size
+    validation_steps=10#len(valgen)//val_batch_size
     print("steps_per_epoch",steps_per_epoch)
     print("validation_steps",validation_steps)
 
