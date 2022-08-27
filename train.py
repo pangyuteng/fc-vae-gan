@@ -42,7 +42,7 @@ if __name__ == '__main__':
         init_lr=1e-5
 
     epochs = 100000
-    batch_size = 4
+    batch_size = 64
     lr_schedule = keras.optimizers.schedules.ExponentialDecay(
         initial_learning_rate=init_lr,
         decay_steps=1000,
