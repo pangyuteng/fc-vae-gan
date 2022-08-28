@@ -217,10 +217,10 @@ def main(myfolder):
 
     batch_size = 4
     input_dim=(1,240,240,3)
-    latent_dim=(1,240,240,10)
+    latent_dim=(1,60,60,64)
     num_list=[16,32]
     dis_num_list=[16,32,64]
-    mystrides=(1,1,1)
+    mystrides=(1,2,2)
     mykernel=(1,15,15)
     
     mymodel = VAEGAN(
@@ -229,9 +229,9 @@ def main(myfolder):
         mystrides=mystrides,mykernel=mykernel,
     )
     mymodel.compile(optimizer=keras.optimizers.Adam(0.01),run_eagerly=True)
-    mymodel.encoder.load_weights('saved_modelsL10/enc.h5')
-    mymodel.decoder.load_weights('saved_modelsL10/dec.h5')
-    mymodel.discr.load_weights('saved_modelsL10/discr.h5')
+    mymodel.encoder.load_weights('tmp/enc.h5')
+    mymodel.decoder.load_weights('tmp/dec.h5')
+    mymodel.discr.load_weights('tmp/discr.h5')
     
     visualize_cluster(mymodel,myfolder,".")
 
@@ -242,7 +242,7 @@ if __name__ == "__main__":
     main(myfolder)
 
 '''
-
+mkdir tmp && cp saved_models/*.h5 tmp
 python clustering.py /mnt/hd2/data/brats2019/MICCAI_BraTS_2019_Data_Training/LGG/BraTS19_TCIA13_653_1
 
 '''
