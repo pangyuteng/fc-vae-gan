@@ -15,8 +15,10 @@ python models.py
 # start training
 python train.py brats19.csv
 
+# monitor tasks
 docker run -u $(id -u):$(id -g) -p 6006:6006 -it -v /mnt:/mnt -w $PWD fcvae bash
 tensorboard --bind_all --logdir=log
+
 
 
 # visualize latent variables via tsne
