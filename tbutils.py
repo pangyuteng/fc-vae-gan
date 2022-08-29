@@ -125,7 +125,7 @@ THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 class ModelSaveCallback(tf.keras.callbacks.Callback):
     def __init__(self,):
         super(ModelSaveCallback, self).__init__()
-    def on_batch_end(self, epoch, logs=None):
+    def on_epoch_end(self, epoch, logs=None):
         os.makedirs(os.path.join(THIS_DIR,'saved_models'),exist_ok=True)
         encoder_weight_file = os.path.join(THIS_DIR,'saved_models','enc.h5')
         decoder_weight_file = os.path.join(THIS_DIR,'saved_models','dec.h5')
