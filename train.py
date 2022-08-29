@@ -34,7 +34,7 @@ if __name__ == '__main__':
         
     elif csv_file == 'brats19.csv':
         input_dim=(1,240,240,3)
-        latent_dim=(1,60,60,64)
+        latent_dim=(1,60,60,128)
         num_list=[16,32]
         dis_num_list=[16,32,64]
         mystrides=(1,2,2)

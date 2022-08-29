@@ -167,11 +167,15 @@ def visualize_cluster(mymodel,myfolder,workdir,batch_size=4):
     # https://yixinwang.github.io/papers/collapse-id-slides-public.pdf
     # 
 
-    original_shape = latent.shape
-    num = np.prod(mask.shape)
-    latent_dim = 10
+    latent_shape = latent.shape
+    num = np.prod(latent_shape[0:3])
+    latent_dim = 64    
+    print(latent.shape)
+    print(mask.shape)    
+    
     X = latent.reshape((num,latent_dim))
-    labels = mask.ravel()
+    resized_mask = resize(mask,latent_shape[0:3],order=0,anti_aliasing=False,cval=0)
+    labels = resized_mask.ravel()
 
     print(labels.shape)
     non_bkgd = np.where(labels!=0)[0]
