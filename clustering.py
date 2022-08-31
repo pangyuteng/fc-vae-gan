@@ -215,13 +215,13 @@ def visualize_cluster(mymodel,myfolder,workdir,batch_size=4):
     plt.close()
 
 
-def main(myfolder):
+def main(input_folder,output_folder):
 
     from models import VAEGAN
 
     batch_size = 4
     input_dim=(1,240,240,3)
-    latent_dim=(1,60,60,64)
+    latent_dim=(1,60,60,128)
     num_list=[16,32]
     dis_num_list=[16,32,64]
     mystrides=(1,2,2)
@@ -237,16 +237,17 @@ def main(myfolder):
     mymodel.decoder.load_weights('tmp/dec.h5')
     mymodel.discr.load_weights('tmp/discr.h5')
     
-    visualize_cluster(mymodel,myfolder,".")
+    visualize_cluster(mymodel,input_folder,output_folder)
 
 if __name__ == "__main__":
 
-    myfolder = sys.argv[1]
-    
-    main(myfolder)
+    input_folder = sys.argv[1]
+    output_folder = sys.argv[2]
+    os.makedirs(output_folder,exist_ok=True)
+    main(input_folder,output_folder)
 
 '''
 mkdir tmp && cp saved_models/*.h5 tmp
-python clustering.py /mnt/hd2/data/brats2019/MICCAI_BraTS_2019_Data_Training/LGG/BraTS19_TCIA13_653_1
+python clustering.py /mnt/hd2/data/brats2019/MICCAI_BraTS_2019_Data_Training/LGG/BraTS19_TCIA13_653_1 cluster_tmp
 
 '''
