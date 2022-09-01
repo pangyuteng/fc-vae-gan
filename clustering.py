@@ -62,11 +62,12 @@ def read_image(myfolder):
 
     return img, t1, seg
 
-def visualize_cluster(mymodel,myfolder,workdir,batch_size=4):
-    
+def visualize_cluster(mymodel,myfolder,workdir,latent_dim,batch_size=4):
+    print('reading image')
     x, t1, tumor = read_image(myfolder)
     x = np.expand_dims(x,axis=1)
-
+    
+    print('latent feature...')
     latent_file = os.path.join(workdir,'latent.npy')
     if not os.path.exists(latent_file):
     
@@ -80,6 +81,7 @@ def visualize_cluster(mymodel,myfolder,workdir,batch_size=4):
     latent = np.load(latent_file)
     latent = latent.squeeze()
 
+    print('segmentation...')
     seg_file = os.path.join(workdir,'seg.npy')
     if not os.path.exists(seg_file):
         # 
@@ -122,13 +124,6 @@ def visualize_cluster(mymodel,myfolder,workdir,batch_size=4):
     offset= 3
     for x in [1,2,3,4]:
         mask[tumor==x]=offset+x
-    if latent.shape[1] != mask.shape[1]:
-        print(latent.shape)
-        print(mask.shape)
-        target_shape = list(latent.shape)
-        target_shape[1]=mask.shape[1]
-        target_shape[2]=mask.shape[2]
-        latent = resize(latent,target_shape,order=0,mode='edge',cval=-1)
 
     print(latent.shape)
     print(mask.shape)
@@ -168,12 +163,12 @@ def visualize_cluster(mymodel,myfolder,workdir,batch_size=4):
     # 
 
     latent_shape = latent.shape
-    num = np.prod(latent_shape[0:3])
-    latent_dim = 64    
+    num = np.prod(latent_shape[0:3])    
     print(latent.shape)
-    print(mask.shape)    
-    
-    X = latent.reshape((num,latent_dim))
+    print(mask.shape)
+    print('reshape latent')
+    X = latent.reshape((num,latent_dim[-1]))
+    print('resize mask')
     resized_mask = resize(mask,latent_shape[0:3],order=0,anti_aliasing=False,cval=0)
     labels = resized_mask.ravel()
 
@@ -236,8 +231,8 @@ def main(input_folder,output_folder):
     mymodel.encoder.load_weights('tmp/enc.h5')
     mymodel.decoder.load_weights('tmp/dec.h5')
     mymodel.discr.load_weights('tmp/discr.h5')
-    
-    visualize_cluster(mymodel,input_folder,output_folder)
+    print('model files loaded')
+    visualize_cluster(mymodel,input_folder,output_folder,latent_dim)
 
 if __name__ == "__main__":
 
