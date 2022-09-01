@@ -25,7 +25,7 @@ if __name__ == '__main__':
 
     if csv_file == 'ped-ct-seg.csv':
         input_dim=(8,64,64,1)
-        latent_dim=(8,16,16,10)
+        latent_dim=(8,16,16,128)
         num_list=[64,64]
         dis_num_list=[16,32,64]
         mystrides=(1,2,2)
@@ -44,21 +44,22 @@ if __name__ == '__main__':
     epochs = 100000
     batch_size = 64
     val_batch_size = 4
-    lr_schedule = keras.optimizers.schedules.ExponentialDecay(
-        initial_learning_rate=init_lr,
-        decay_steps=100,
-        decay_rate=0.96
-    )
 
     df = pd.read_csv(csv_file)
     mygen = DataGenerator(df,output_shape=input_dim,shuffle=True,augment=True,batch_size=batch_size)
     valgen = DataGenerator(df,output_shape=input_dim,shuffle=True,augment=True,batch_size=val_batch_size)
     
-    steps_per_epoch=len(mygen)//batch_size
-    validation_steps=len(valgen)//val_batch_size
+    steps_per_epoch=len(mygen)
+    validation_steps=len(valgen)
     print("steps_per_epoch",steps_per_epoch)
     print("validation_steps",validation_steps)
-    sys.exit(0)
+
+    lr_schedule = keras.optimizers.schedules.ExponentialDecay(
+        initial_learning_rate=init_lr,
+        decay_steps=steps_per_epoch*2,
+        decay_rate=0.96
+    )
+
     run_eagerly = True
     strategy = tf.distribute.MultiWorkerMirroredStrategy()
     print("Number of devices: {}".format(strategy.num_replicas_in_sync))
