@@ -1,6 +1,7 @@
 # source https://github.com/pangyuteng/hello-mnist/blob/4ac2511a0829a0e525085c12ee490c94250481bd/selfsuper/hello-vae/8-fc-conv-vae-gan/vaegan.py
 
 import os,sys
+import datetime
 import pandas as pd
 
 import numpy as np
@@ -72,7 +73,8 @@ if __name__ == '__main__':
         mymodel.compile(optimizer=keras.optimizers.Adam(lr_schedule),run_eagerly=run_eagerly)
 
     # logging
-    log_dir = './log'
+    tstamp = datetime.datetime.now().strftime("%Y-%d-%m-%H-%M-%S")
+    log_dir = f"./log/{tstamp}"
     tensorboard_cb = keras.callbacks.TensorBoard(
         log_dir=log_dir, histogram_freq=0, write_graph=True, write_images=False,
         update_freq='batch', profile_batch=2, embeddings_freq=0)

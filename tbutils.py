@@ -25,7 +25,7 @@ from clustering import visualize_cluster
 class Warmup(keras.callbacks.Callback):
     # 1 / (e^-x +1)
     #scale = 1 # use to determine max value.
-    scale = 0.04 # once max val past 0.05 - posterior collapse for GM/WM/CSF
+    scale = 1 # once max val past 0.05 - posterior collapse for GM/WM/CSF
     slope = 0.5 # slope, higher means steeper.
     shift = 10 # shift so that all values > 0.
     def on_epoch_begin(self, epoch, logs=None):
