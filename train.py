@@ -57,7 +57,7 @@ if __name__ == '__main__':
 
     lr_schedule = keras.optimizers.schedules.ExponentialDecay(
         initial_learning_rate=init_lr,
-        decay_steps=steps_per_epoch*2,
+        decay_steps=steps_per_epoch*10,
         decay_rate=0.96
     )
 
