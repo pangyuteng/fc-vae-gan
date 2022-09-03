@@ -73,7 +73,7 @@ if __name__ == '__main__':
         mymodel.compile(optimizer=keras.optimizers.Adam(lr_schedule),run_eagerly=run_eagerly)
 
     # logging
-    tstamp = datetime.datetime.now().strftime("%Y-%d-%m-%H-%M-%S")
+    tstamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
     log_dir = f"./log/{tstamp}"
     tensorboard_cb = keras.callbacks.TensorBoard(
         log_dir=log_dir, histogram_freq=0, write_graph=True, write_images=False,
